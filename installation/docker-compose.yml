@@ -1,0 +1,48 @@
+---
+name: faridoon
+
+services:
+  faridoon:
+    container_name: faridoon
+    image: ghcr.io/jamesread/faridoon
+    volumes:
+      - faridoon-config:/config
+    ports:
+      - "8080:8080"
+    environment:
+      DB_HOST: faridoon-mysql
+      DB_NAME: faridoon
+      DB_USER: faridoon
+      DB_PASS: toomanysecrets
+    restart: unless-stopped
+    networks:
+      - faridoon-network
+    depends_on:
+      faridoon-mysql:
+        condition: service_healthy
+
+  faridoon-mysql:
+    container_name: faridoon-mysql
+    image: mysql
+    volumes:
+      - faridoon-mysql:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: hunter2
+      MYSQL_DATABASE: faridoon
+      MYSQL_USER: faridoon
+      MYSQL_PASSWORD: toomanysecrets
+    restart: unless-stopped
+    networks:
+      - faridoon-network
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  faridoon-config:
+  faridoon-mysql:
+
+networks:
+  faridoon-network:
