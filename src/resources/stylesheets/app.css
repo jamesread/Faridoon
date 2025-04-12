@@ -23,6 +23,8 @@ footer {
 
 section {
   max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 section.small {
@@ -112,7 +114,6 @@ header {
 div.pagination {
   text-align: center;
   padding: 1em;
-  padding-bottom: 0;
 }
 
 span.currentPage {

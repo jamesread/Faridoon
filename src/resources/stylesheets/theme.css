@@ -1,3 +1,4 @@
+/** https://github.com/jamesread/BrightAndSimpleTheme **/
 body {
   font-family: sans-serif;
   margin: 0;
@@ -8,17 +9,13 @@ body {
 
 main {
   margin: 0;
-  padding-left: 1em;
-  padding-right: 1em;
+  padding: 1em;
 }
 
 section {
   background-color: white;
   padding: 1em;
   border-radius: .4em;
-  margin-left: auto;
-  margin-right: auto;
-  margin-top: 1em;
   margin-bottom: 1em;
   box-shadow: 0 0 .5em #9a9a9a;
 }
@@ -31,6 +28,10 @@ header {
   box-shadow: 0 0 1em #9a9a9a;
 }
 
+header a, header a:visited {
+  color: white;
+}
+
 h1 {
   margin: 0;
   margin-right: 1em;
@@ -38,7 +39,6 @@ h1 {
 }
 
 h2 {
-  font-size: 1em;
   font-weight: 800;
   letter-spacing: -.025em;
   margin-bottom: -.25em;
@@ -95,7 +95,7 @@ pre {
   margin: .4em;
 }
 
-.critical, .error {
+.critical, .error, .bad {
   background-color: salmon;
 }
 
@@ -119,8 +119,12 @@ pre {
   background-color: #efefef;
 }
 
-.success {
+.success, .good {
   background-color: lightgreen;
+}
+
+.old {
+  background-color: wheat !important;
 }
 
 .inline-notification {
@@ -197,6 +201,16 @@ fieldset {
   gap: 1em;
 }
 
+.grid {
+  display: grid;
+  gap: 1em;
+  justify-content: center;
+}
+
+.grid-display {
+  display: grid;
+}
+
 .grid-boxed {
   display: grid;
   gap: 0;
@@ -204,6 +218,10 @@ fieldset {
   padding: 1em;
   border-radius: .4em;
   grid-template-columns: 1fr 1fr 1fr;
+}
+
+.gc-xl {
+  grid-template-columns: repeat(auto-fit,minmax(500px,1fr));
 }
 
 .grid-boxed div {
@@ -214,4 +232,128 @@ fieldset {
 
 .stat-display span.subtle {
   display: block;
+}
+
+table {
+  width: 100%;
+}
+
+table, th, td {
+  border: 1px solid #ccc;
+  border-collapse: collapse;
+}
+
+td,th  {
+  padding: .5em;
+}
+
+th {
+  background-color: #efefef;
+}
+
+td.uneditable {
+  background-color: #f0f0f0;
+  font-weight: bold;
+}
+
+ul.noListStyle {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+ul[role=menubar] {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+[role=menubar] li {
+  display: inline-block;
+}
+
+ul[role=menubar] li div {
+  position: absolute;
+  display: none;
+  box-shadow: 0 0 6px 0 #444;
+}
+
+ul[role=menubar] li:hover {
+  background-color: beige;
+}
+
+header ul[role=menubar] li:hover {
+  background-color: #555;
+}
+
+
+ul[role=menubar] li span {
+  cursor: pointer;
+}
+
+ul[role=menubar] li:hover div {
+  display: block;
+  background-color: #fff;
+  min-width: 12em;
+}
+
+header ul[role=menubar] li:hover ul {
+  margin: 0;
+  padding: 0;
+}
+
+ul[role=menubar] div ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+ul[role=menubar] div ul li {
+  display: block;
+  margin-right: 0;
+}
+
+ul[role=menubar] div ul a {
+  text-decoration: none;
+  display: block;
+  padding: .2em;
+}
+
+header ul[role=menubar] div li a {
+  border-radius: 0;
+}
+
+ul[role=menubar] div ul a:hover {
+  background-color: beige;
+}
+
+header ul[role=menubar] div ul a:hover {
+  background-color: #555;
+}
+
+header ul[role=menubar] a, header ul[role=menubar] a:visited {
+  color: white;
+  background-color: #444;
+}
+
+header ul[role=menubar] a:hover {
+  background-color: #555;
+}
+
+footer {
+	text-align: center;
+}
+
+.a11yhidden {
+	position: absolute;
+	left: -500px;
+}
+
+.a11yhidden:focus {
+	left: 1em;
+	background-color: black;
+	border: 2px solid #555;
+	border-radius: .5em;
+	padding: .5em;
+	color: white;
 }
