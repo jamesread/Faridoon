@@ -1,4 +1,10 @@
 /** https://github.com/jamesread/BrightAndSimpleTheme **/
+html, body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
 body {
   font-family: sans-serif;
   margin: 0;
@@ -10,6 +16,7 @@ body {
 main {
   margin: 0;
   padding: 1em;
+  flex-grow: 1;
 }
 
 section {
@@ -21,15 +28,39 @@ section {
 }
 
 header {
-  padding: 1em;
   background-color: #444;
   color: white;
   display: flex;
-  box-shadow: 0 0 1em #9a9a9a;
+  box-shadow: 0px 0px 6px 5px #aaa;
+  border-bottom: 1px solid #3f3f3f;
+  align-items: center;
+  gap: 1em;
+  z-index: 1; /* So the header box-shadow shows over the top of the sidebar */
+  min-height: 3em; /* .logo 2em + .5em padding */
 }
 
 header a, header a:visited {
   color: white;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+header a.active {
+  text-decoration: underline;
+}
+
+header img.logo {
+  width: 2em;
+  height: 2em;
+  padding: .5em;
+}
+
+.icon {
+  font-size: 2em;
+}
+
+header p {
+  margin: 0;
 }
 
 h1 {
@@ -40,6 +71,7 @@ h1 {
 
 h2 {
   font-weight: 800;
+  font-size: 1.1em;
   letter-spacing: -.025em;
   margin-bottom: -.25em;
 }
@@ -96,6 +128,7 @@ pre {
 }
 
 .critical, .error, .bad {
+  color: white !important;
   background-color: salmon;
 }
 
@@ -121,6 +154,7 @@ pre {
 
 .success, .good {
   background-color: lightgreen;
+  color: black;
 }
 
 .old {
@@ -138,13 +172,15 @@ button {
   padding-bottom: .4em;
   padding-left: 1em;
   padding-right: 1em;
-  border-radius: .2em;
+  border-radius: .4em;
   background-color: #fff;
   font-weight: bold;
+  font-family: sans-serif;
   color: black;
   border: 1px solid #ccc;
   cursor: pointer;
-  font-size: 1.1em;
+  font-size: 1em;
+  font-family: sans-serif;
 }
 
 button:hover {
@@ -152,13 +188,13 @@ button:hover {
 }
 
 button[type="submit"] {
-  background-color: lightgreen;
-  color: black;
-  border: 1px solid limegreen;
+  background-color: #488448;
+  color: white;
+  border: 0;
 }
 
 button[type="submit"]:hover {
-  background-color: #81e481;
+  background-color: #569d56;
 }
 
 .subtle {
@@ -174,22 +210,44 @@ button[type="submit"]:hover {
 form {
   display: grid;
   gap: 1em;
-  grid-template-columns: auto auto auto auto auto;
+  grid-template-columns: max-content 1fr;
   grid-template-rows: auto;
   flex-direction: column;
-  background-color: #efefef;
   border-radius: .4em;
-  padding: 1em;
+  align-items: center;
 }
 
 label {
   font-weight: bold;
 }
 
-input[type="text"], input[type="email"], input[type="password"] {
-  padding: .4em;
+select {
+  padding: 1em;
   border-radius: .4em;
   border: 1px solid #ccc;
+  font-family: sans-serif;
+  background-color: white;
+}
+
+textarea {
+  padding: 1em;
+  border-radius: .4em;
+  border: 1px solid #ccc;
+  font-family: sans-serif;
+  min-height: 6em;
+}
+
+textarea[readonly] {
+  background-color: #f0f0f0;
+  color: #666;
+  font-style: italic;
+}
+
+input[type="text"], input[type="email"], input[type="password"] {
+  padding: 1em;
+  border-radius: .4em;
+  border: 1px solid #ccc;
+  font-family: sans-serif;
 }
 
 fieldset {
@@ -199,6 +257,8 @@ fieldset {
   grid-column: span 2;
   padding: 0;
   gap: 1em;
+  font-family: sans-serif;
+  align-items: start;
 }
 
 .grid {
@@ -226,12 +286,25 @@ fieldset {
 
 .grid-boxed div {
   border: 1px solid #ccc;
+  border-right: 0;
   padding: 1em;
   background-color: #fff;
 }
 
+.grid-boxed div:last-child {
+  border-right: 1px solid #ccc;
+}
+
 .stat-display span.subtle {
   display: block;
+}
+
+div[role="toolbar"] {
+  display: flex;
+  flex-direction: row;
+  gap: 1em;
+  align-items: center;
+  margin-bottom: 1em;
 }
 
 table {
@@ -239,7 +312,8 @@ table {
 }
 
 table, th, td {
-  border: 1px solid #ccc;
+  border: 0;
+  border-bottom: 1px solid #ccc;
   border-collapse: collapse;
 }
 
@@ -248,7 +322,8 @@ td,th  {
 }
 
 th {
-  background-color: #efefef;
+  background-color: #EFF1F3;
+  text-align: left;
 }
 
 td.uneditable {
@@ -340,20 +415,200 @@ header ul[role=menubar] a:hover {
   background-color: #555;
 }
 
+aside {
+  position: fixed;
+  background-color: #fff;
+  box-shadow: 0 0 .5em #9a9a9a;
+  transition: left .5s, visibility .5s, z-index .5s step-start;
+  min-width: 14em;
+  width: 14em;
+  z-index: -1;
+  visibility: hidden;
+  left: -14em;
+  height: 100vh;
+}
+
+aside.stuck { 
+  position: static;
+  height: auto; /* flex element */
+}
+
+aside.shown {
+  visibility: visible;
+  left: 0;
+  z-index: 0;
+}
+
+aside ul {
+  list-style: none;
+  padding: 0;
+}
+
+aside ul li a {
+  text-decoration: none;
+  color: black;
+  display: block;
+  padding: .4em;
+  padding: .4em 1em;
+}
+
+aside ul li a:hover {
+  background-color: #c6d0d7;
+}
+
 footer {
-	text-align: center;
+  text-align: center;
+  padding: .5em;
+}
+
+#layout {
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+}
+
+#content {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+footer span {
+  padding: .5em 1em .5em 1em;
+  border-radius: .5em;
+  background-color: #c6d0d7;
+  display: inline-block;
 }
 
 .a11yhidden {
-	position: absolute;
-	left: -500px;
+  position: absolute;
+  left: -500px;
 }
 
 .a11yhidden:focus {
-	left: 1em;
-	background-color: black;
-	border: 2px solid #555;
-	border-radius: .5em;
-	padding: .5em;
-	color: white;
+  left: 1em;
+  background-color: black;
+  border: 2px solid #555;
+  border-radius: .5em;
+  padding: .5em;
+  color: white;
+}
+
+#sidebar-button {
+  width: 14em;
+  cursor: pointer;
+  border-right: 1px solid #333;
+  background-color: #444;
+}
+
+#sidebar-button:hover {
+  background-color: #666;
+}
+
+#sidebar-button .menu-icon {
+  padding: .5em;
+}
+
+.vh {
+  visibility: hidden;
+}
+
+.script-button {
+  padding: .5em;
+  cursor: pointer;
+}
+
+.fs2 {
+  font-size: 2em;
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.fg0 {
+  flex-grow: 0;
+}
+
+.fg1 {
+  flex-grow: 1;
+}
+
+.g1 {
+  gap: 1em;
+}
+
+.g2 {
+  gap: 2em;
+}
+
+.flex-spacer {
+  flex-grow: 1;
+}
+
+@media (prefers-color-scheme: dark) {
+  header {
+    background-color: black;
+    box-shadow: 0px 0px 6px 5px #121212;
+  border-bottom: 1px solid #222;
+  }
+
+  body {
+  background-color: #333;
+  color: #ddd;
+  }
+
+  section {
+    background-color: #111;
+    box-shadow: 0 0 .5em #121212;
+  }
+
+  footer a, footer a:visited {
+    color: #ddd;
+    color: lightblue;
+  }
+
+  th {
+	background-color: #333;
+  }
+
+  table, th, td {
+	border: 1px solid #707079;
+  }
+  
+  footer span {
+	background-color: #444;	
+  }
+}
+
+@media (max-width: 600px) {
+  header {
+    gap: .5em;
+  }
+
+  header h1 {
+  font-size: 1.2em;
+  }
+
+  header p {
+  font-size: .8em;
+  }
+
+  header nav ul li {
+  display: block;
+  margin-right: 0;
+  }
+
+  main {
+    padding: 0;
+  }
+
+  section {
+	margin: 0;
+	margin-top: 1em;
+	border-radius: 0;
+	padding: .75em;
+  }
 }

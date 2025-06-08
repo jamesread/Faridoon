@@ -1,19 +1,12 @@
-html, body {
-  height: 100%;
-}
-
-body {
-  display: flex;
-  flex-direction: column;
-}
-
-main {
-  flex-grow: 1;
-}
-
 nav {
   display: flex;
   flex-grow: 1;
+}
+
+form {
+  display: grid;
+  grid-template-columns: max-content auto auto auto auto;
+  gap: 1em;
 }
 
 footer {
@@ -55,15 +48,8 @@ nav ul:first-child {
   flex-grow: 1;
 }
 
-#content, #footer {
-  margin: auto;
-  width: 90%;
-}
-
 textarea {
-  width: 100% !important;
-  display: block;
-  margin: 0;
+  place-self: stretch;
 }
 
 p.quote, .snippet-wrap {
