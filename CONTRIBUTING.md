@@ -8,8 +8,8 @@ If you're not sure where to get started, raise an issue in the project.
 
 Ideas may be discussed, purely on their merits and issues. Our Code of Conduct
 (CoC) is straightforward - it's important that contributors feel comfortable in
-discussion throughout the whole process. This project respects the
-link:https://www.kernel.org/doc/html/latest/process/code-of-conduct.html[Linux Kernel code of conduct].
+discussion throughout the whole process. This project has a
+[Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## More than 3 lines - talk to someone first
 
@@ -28,8 +28,8 @@ about what you're planning might affect things. Some of the larger future plans 
 documented well so it's difficult to understand how your change might affect
 the general direction and roadmap of this project without asking.
 
-The preferred way to communicate is probably via GitHub issues.
+The preferred way to communicate is probably via Discord or GitHub issues.
 
 ## Mechanics of submitting a pull request
 
-When you are ready for a PR, please see the link:.github/PULL_REQUEST_TEMPLATE.md[pull request template].
+When you are ready for a PR, please see the [pull request template](.github/PULL_REQUEST_TEMPLATE.md).
