@@ -28,7 +28,10 @@ class FormQuote extends Form
             $content = 'Your quote here.';
         }
 
-        $this->addElement(new ElementTextbox('content', 'Content', stripslashes($content), 'Note: Usernames are automatically highlighted. Timestamps are automatically stripped.'));
+		$tb = new ElementTextbox('content', 'Content', stripslashes($content), 'Note: Usernames are automatically highlighted. Timestamps are automatically stripped.');
+		$tb->rows = 8;
+		$tb->cols = 20;
+		$this->addElement($tb);
 
         global $cfg;
         if ($cfg->getBool('ENABLE_SYNTAX_HIGHLIGHTING')) {
