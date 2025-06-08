@@ -13,7 +13,7 @@ jobs:
           fetch-depth: 0
 
       - name: Set up QEMU
-        uses: actions/setup-qemu@v3
+        uses: actions/setup-qemu-action@v3
         with:
           image: tonistiigi/binfmt:latest
           platforms: arm64
