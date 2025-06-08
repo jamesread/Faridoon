@@ -12,6 +12,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Set up QEMU
+        uses: actions/setup-qemu@v3
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: arm64
+
       - name: Setup PHP Action
         uses: shivammathur/setup-php@2.33.0
         with:
