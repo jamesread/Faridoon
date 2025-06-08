@@ -1,4 +1,4 @@
-VERSION := $(shell git branch | awk '{print $$2}')
+RELEASE_VERSION ?= development
 
 lint: phpcs phpcbf phpstan
 
@@ -14,13 +14,6 @@ phpstan:
 phpunit:
 	vendor/bin/phpunit tests/*
 
-dist: clean
-	echo "Building: ${VERSION}"
-	mkdir -p build/tmp/
-	cp -r src/* build/tmp/
-	mv build/tmp build/faridoon-${VERSION}/
-	zip -r build/faridoon-${VERSION}.zip build/faridoon-${VERSION}/ 
-
 clean:
 	rm -rf build
 
@@ -33,7 +26,36 @@ container: container-image
 	docker create --name faridoon -p 8080:8080 --env-file=.env.dev faridoon:latest
 	docker start faridoon
 
-docker-container-image:
-	docker build -t localhost/faridoon/faridoon:latest -f Dockerfile .
+docker-amd64:
+	docker buildx build --platform linux/amd64 -t ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-amd64 -f Dockerfile --output type=docker --load .
+	docker push ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-amd64
+
+docker-arm64:
+	docker buildx build --platform linux/arm64 -t ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-arm64 -f Dockerfile --output type=docker --load .
+	docker push ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-arm64
+
+docker-manifest-latest:
+	docker manifest create ghcr.io/jamesread/faridoon:latest \
+		ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-arm64 \
+		ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-amd64
+	docker manifest annotate ghcr.io/jamesread/faridoon:latest \
+		ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-amd64 --os linux --arch amd64
+	docker manifest annotate ghcr.io/jamesread/faridoon:latest \
+		ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-arm64 --os linux --arch arm64
+	docker manifest push ghcr.io/jamesread/faridoon:latest
+
+docker-manifest-release-version:
+	docker manifest create ghcr.io/jamesread/faridoon:${RELEASE_VERSION} \
+		ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-amd64 \
+		ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-arm64
+	docker manifest annotate ghcr.io/jamesread/faridoon:${RELEASE_VERSION} \
+		ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-amd64 --os linux --arch amd64
+	docker manifest annotate ghcr.io/jamesread/faridoon:${RELEASE_VERSION} \
+		ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-arm64 --os linux --arch arm64
+	docker manifest push ghcr.io/jamesread/faridoon:${RELEASE_VERSION}
+
+docker-manifest: docker-manifest-latest docker-manifest-release-version
+
+release: docker-amd64 docker-arm64 docker-manifest
 
 .PHONY: dist clean docker-container-image container

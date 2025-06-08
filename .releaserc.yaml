@@ -1,0 +1,12 @@
+---
+branches:
+  - main
+plugins:
+  - '@semantic-release/commit-analyzer'
+  - '@semantic-release/github'
+  - '@semantic-release/git'
+  - - "@semantic-release/exec"
+    - publishCmd: |
+        RELEASE_VERSION=${nextRelease.version} make release
+
+tagFormat: '${version}'
