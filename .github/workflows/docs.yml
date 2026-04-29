@@ -14,7 +14,7 @@ jobs:
     name: Build docs to pretty HTML!
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Deploy docs
         uses: mhausenblas/mkdocs-deploy-gh-pages@master
