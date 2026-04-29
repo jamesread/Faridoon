@@ -229,11 +229,6 @@ ul.block-links a:hover {
 }
 
 @media (prefers-color-scheme: dark) {
-  body {
-    background-color: #333;
-    color: #ddd;
-  }
-
   ul.block-links a {
     border: 1px solid #666;
     box-shadow: 0 0 .5em #1c1c1c;
@@ -242,9 +237,7 @@ ul.block-links a:hover {
   section {
     background-color: #444;
     color: #ddd;
-    border-radius: 1em;
     box-shadow: 0 0 1em #261f1f;
-    padding: 1em;
   }
 
   header {
@@ -257,10 +250,6 @@ ul.block-links a:hover {
 
   a:hover {
     color: #fff;
-  }
-
-  form {
-    background-color: #6a6a6a;
   }
 }
 
@@ -318,6 +307,7 @@ td, th {
   border: 1px solid #999;
 }
 
+/**
 @media screen and (max-width: 640px) {
   #content, #footer, body {
     width: auto;
@@ -398,5 +388,4 @@ td, th {
     flex-direction: row-reverse;
   }
 }
-
-
+*/

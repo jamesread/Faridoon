@@ -428,7 +428,7 @@ aside {
   height: 100vh;
 }
 
-aside.stuck { 
+aside.stuck {
   position: static;
   height: auto; /* flex element */
 }
@@ -571,15 +571,15 @@ footer span {
   }
 
   th {
-	background-color: #333;
+    background-color: #333;
   }
 
   table, th, td {
-	border: 1px solid #707079;
+    border: 1px solid #707079;
   }
-  
+
   footer span {
-	background-color: #444;	
+    background-color: #444;
   }
 }
 
@@ -606,9 +606,9 @@ footer span {
   }
 
   section {
-	margin: 0;
-	margin-top: 1em;
-	border-radius: 0;
-	padding: .75em;
+    margin: 0;
+    margin-top: 1em;
+    border-radius: 0;
+    padding: .75em;
   }
 }
