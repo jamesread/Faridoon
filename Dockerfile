@@ -1,4 +1,4 @@
-FROM docker.io/php:8.3-apache AS base
+FROM docker.io/php:8.5-apache AS base
 
 RUN apt-get update && apt-get install sql-migrate unzip -y --no-install-recommends && rm -rf /var/lib/apt/lists/*
 
