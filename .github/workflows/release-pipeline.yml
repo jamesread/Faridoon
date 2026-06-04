@@ -19,7 +19,7 @@ jobs:
           platforms: arm64
 
       - name: Setup PHP Action
-        uses: shivammathur/setup-php@2.33.0
+        uses: shivammathur/setup-php@2.37.1
         with:
           php-version: '8.3'
 
