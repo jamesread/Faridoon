@@ -11,6 +11,7 @@ $f = new faridoon\FormQuote();
 if ($f->validate()) {
     $f->process();
 
+    $tpl->assign('quoteId', $db->lastInsertId());
     $tpl->display('quoteAdded.tpl');
 
     include_once 'includes/widgets/footer.php';

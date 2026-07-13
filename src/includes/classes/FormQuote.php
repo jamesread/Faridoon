@@ -4,7 +4,6 @@ namespace faridoon;
 
 use libAllure\Form;
 use libAllure\ElementInput;
-use libAllure\ElementTextbox;
 use libAllure\ElementCheckbox;
 use libAllure\ElementSelect;
 use libAllure\Session;
@@ -13,7 +12,7 @@ class FormQuote extends Form
 {
     private $isEdit;
 
-    public function __construct(array $quote = null)
+    public function __construct(?array $quote = null)
     {
         parent::__construct('add', 'Add Quote');
         $this->setFullyQualifiedElementNames(false);
@@ -25,12 +24,15 @@ class FormQuote extends Form
             $content = $quote['content'];
             $this->setTitle('Editing...');
         } else {
-            $content = 'Your quote here.';
+            $content = '';
         }
 
         $tb = new ElementTextbox('content', 'Content', stripslashes($content), 'Note: Usernames are automatically highlighted. Timestamps are automatically stripped.');
         $tb->rows = 8;
         $tb->cols = 20;
+        if (!$this->isEdit) {
+            $tb->placeholder = 'Your quote here.';
+        }
         $this->addElement($tb);
 
         global $cfg;

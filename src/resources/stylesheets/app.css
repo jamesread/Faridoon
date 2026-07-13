@@ -147,17 +147,20 @@ div.voteContainer button:hover {
   background-color: transparent;
 }
 
-div.section-header {
+div.section-header,
+div.quoteHeader {
   display: flex;
   gap: .5em;
 }
 
-div.section-header .section-links {
+div.section-header .section-links,
+div.quoteHeader .section-links {
   flex-grow: 2;
   text-align: end;
 }
 
-div.section-header ul.section-links a .svg-icon {
+div.section-header ul.section-links a .svg-icon,
+div.quoteHeader ul.section-links a .svg-icon {
   padding: .2em;
   border-radius: 2em;
 }

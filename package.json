@@ -1,0 +1,7 @@
+{
+  "name": "faridoon",
+  "private": true,
+  "dependencies": {
+    "femtocrank": "^2.5.0"
+  }
+}

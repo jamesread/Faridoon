@@ -7,7 +7,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <link rel = "stylesheet" type = "text/css" href = "resources/stylesheets/theme.css" />
+    <link rel = "stylesheet" type = "text/css" href = "resources/stylesheets/style.css" />
+    <link rel = "stylesheet" type = "text/css" href = "resources/stylesheets/dark.css" />
     <link rel = "stylesheet" type = "text/css" href = "resources/stylesheets/app.css" />
 
 	<link rel = "shortcut icon" type = "image/png" href = "resources/svg/faridoon.png" />

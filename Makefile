@@ -1,5 +1,10 @@
 RELEASE_VERSION ?= development
 
+stylesheets:
+	npm install
+	cp node_modules/femtocrank/style.css src/resources/stylesheets/style.css
+	cp node_modules/femtocrank/dark.css src/resources/stylesheets/dark.css
+
 lint: phpcs phpcbf phpstan
 
 phpcs:
@@ -58,4 +63,4 @@ docker-manifest: docker-manifest-latest docker-manifest-release-version
 
 release: docker-amd64 docker-arm64 docker-manifest
 
-.PHONY: dist clean docker-container-image container
+.PHONY: dist clean docker-container-image container stylesheets

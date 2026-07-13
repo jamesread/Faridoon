@@ -8,7 +8,7 @@
 	{/if}
 
 	<div class = "quoteContainer">
-		<div class = "section-header">
+		<div class = "quoteHeader">
 			<strong><a href = "show.php?action=show&amp;id={$quote->id}">#{$quote->id}</a></strong>
 
 			{if $hasApprovalPermissions}
