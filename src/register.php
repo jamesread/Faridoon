@@ -11,7 +11,7 @@ if ($cfg->getBool('DISABLE_REGISTRATION')) {
     exit;
 }
 
-use libAllure\util\FormRegister;
+use faridoon\FormRegister;
 
 $f = new FormRegister();
 $f->setTitle('Register as a new user');

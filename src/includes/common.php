@@ -33,7 +33,7 @@ DatabaseFactory::registerInstance($db);
 
 require_once 'includes/startup.php';
 
-requireDatabaseVersion('2.permissions.sql');
+requireDatabaseVersion('3.charset-utf8mb4.sql');
 
 require_once 'includes/functionality.php';
 

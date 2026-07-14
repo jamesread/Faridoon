@@ -58,3 +58,6 @@ jobs:
 
       - name: Run phpstan
         run: make phpstan
+
+      - name: Run phpunit
+        run: make phpunit
