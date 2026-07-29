@@ -14,6 +14,7 @@ $cfg->set(
         'DB_NAME' => 'faridoon',
         'DB_HOST' => 'mysql',
         'SITE_TITLE' => 'Faridoon',
+        'ITEMS_PER_PAGE' => 5,
     ]
 );
 $cfg->loadFromPaths(

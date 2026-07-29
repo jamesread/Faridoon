@@ -4,7 +4,9 @@ require_once 'includes/widgets/header.php';
 
 use faridoon\Quote;
 
-$limit = 5;
+global $cfg;
+
+$limit = $cfg->get('ITEMS_PER_PAGE');
 $order = filter('order');
 $page = filter('page');
 $page = $page == null ? 0 : $page;
