@@ -48,6 +48,7 @@ function requireDatabaseVersion(string $requiredMigration)
 
 function validateConfig() {
     // Validate ITEMS_PER_PAGE
+    global $cfg;
     $limit = filter_var($cfg->get('ITEMS_PER_PAGE'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
     if ($limit === false) {
         startupError('ITEMS_PER_PAGE must be a positive integer');
