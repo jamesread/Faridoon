@@ -19,20 +19,12 @@ type DatabaseConfig struct {
 	Port     int    `yaml:"port"`
 }
 
-type FeaturesConfig struct {
-	DisableRegistration      bool `yaml:"disableRegistration"`
-	GuestsDisableAdd         bool `yaml:"guestsDisableAdd"`
-	EnableSyntaxHighlighting bool `yaml:"enableSyntaxHighlighting"`
-	EnableVoting             bool `yaml:"enableVoting"`
-}
-
 type Config struct {
 	Listen            string             `yaml:"listen"`
 	SiteTitle         string             `yaml:"siteTitle"`
 	RequiredMigration string             `yaml:"requiredMigration"`
 	Auth              *authpublic.Config `yaml:"auth"`
 	Database          DatabaseConfig     `yaml:"database"`
-	Features          FeaturesConfig     `yaml:"features"`
 	ConfigVersion     int                `yaml:"configVersion"`
 }
 
@@ -85,16 +77,13 @@ func Defaults() *Config {
 		ConfigVersion:     1,
 		Listen:            ":8080",
 		SiteTitle:         "Faridoon",
-		RequiredMigration: "6.audit-logs.sql",
+		RequiredMigration: "9.cvars.sql",
 		Database: DatabaseConfig{
 			Host:     envOr("DB_HOST", "mysql"),
 			Port:     3306,
 			Name:     firstNonEmpty(os.Getenv("DB_DATABASE"), os.Getenv("DB_NAME"), "faridoon"),
 			User:     firstNonEmpty(os.Getenv("DB_USERNAME"), os.Getenv("DB_USER"), "user"),
 			Password: firstNonEmpty(os.Getenv("DB_PASSWORD"), os.Getenv("DB_PASS"), ""),
-		},
-		Features: FeaturesConfig{
-			EnableVoting: true,
 		},
 	}
 }
@@ -125,7 +114,7 @@ func applyConfigFallbacks(cfg *Config) {
 		cfg.Listen = ":8080"
 	}
 	if cfg.RequiredMigration == "" {
-		cfg.RequiredMigration = "6.audit-logs.sql"
+		cfg.RequiredMigration = "9.cvars.sql"
 	}
 	if cfg.SiteTitle == "" {
 		cfg.SiteTitle = "Faridoon"

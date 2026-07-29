@@ -8,6 +8,7 @@ import {
   ChampionIcon,
   PlusSignIcon,
   Tick02Icon,
+  Link01Icon,
 } from '@hugeicons/core-free-icons'
 import { initState, loadInit } from '../composables/useInit'
 
@@ -17,33 +18,38 @@ const appVersion = computed(() => initState.version || 'development')
 const auth = computed(() => initState.user)
 const features = computed(() => initState.features)
 const pendingApprovals = computed(() => initState.pendingApprovals || 0)
+const headerLinks = computed(() => initState.headerLinks || [])
 
 const navigationLinks = ref([])
 
-function rebuildNavigation() {
-  const links = [
-    {
-      name: 'latest',
-      title: 'Latest',
-      type: 'callback',
-      icon: Clock01Icon,
-      callback: () => router.push({ name: 'quotes', query: { order: 'latest' } }),
-    },
-    {
-      name: 'random',
-      title: 'Random',
-      type: 'callback',
-      icon: ShuffleIcon,
-      callback: () => router.push({ name: 'quotes', query: { order: 'random' } }),
-    },
-  ]
+function pushQuoteOrder(order) {
+  router.push({ name: 'quotes', query: { order } })
+}
+
+function openCustomLink(link) {
+  if (link.url.startsWith('/')) {
+    if (link.openInNewTab) {
+      window.open(link.url, '_blank', 'noopener,noreferrer')
+      return
+    }
+    router.push(link.url)
+    return
+  }
+  if (link.openInNewTab) {
+    window.open(link.url, '_blank', 'noopener,noreferrer')
+    return
+  }
+  window.location.assign(link.url)
+}
+
+function appendFeatureLinks(links) {
   if (features.value.votingEnabled) {
     links.push({
       name: 'rank',
       title: 'Highest voted',
       type: 'callback',
       icon: ChampionIcon,
-      callback: () => router.push({ name: 'quotes', query: { order: 'rank' } }),
+      callback: () => pushQuoteOrder('rank'),
     })
   }
   if (auth.value?.canApproveQuotes) {
@@ -64,10 +70,47 @@ function rebuildNavigation() {
       callback: () => router.push({ name: 'quote-create' }),
     })
   }
+}
+
+function appendCustomLinks(links) {
+  if (!headerLinks.value.length) {
+    return
+  }
+  links.push({ name: 'custom-sep', type: 'separator' })
+  for (const link of headerLinks.value) {
+    links.push({
+      name: `custom-${link.id}`,
+      title: link.title,
+      type: 'callback',
+      icon: Link01Icon,
+      callback: () => openCustomLink(link),
+    })
+  }
+}
+
+function rebuildNavigation() {
+  const links = [
+    {
+      name: 'latest',
+      title: 'Latest',
+      type: 'callback',
+      icon: Clock01Icon,
+      callback: () => pushQuoteOrder('latest'),
+    },
+    {
+      name: 'random',
+      title: 'Random',
+      type: 'callback',
+      icon: ShuffleIcon,
+      callback: () => pushQuoteOrder('random'),
+    },
+  ]
+  appendFeatureLinks(links)
+  appendCustomLinks(links)
   navigationLinks.value = links
 }
 
-watch([auth, features, pendingApprovals], rebuildNavigation, { immediate: true, deep: true })
+watch([auth, features, pendingApprovals, headerLinks], rebuildNavigation, { immediate: true, deep: true })
 
 const navigation = computed(() => ({
   navigationLinks: navigationLinks.value,
@@ -78,7 +121,6 @@ function goHome() {
   router.push({ name: 'quotes' })
 }
 
-// re-export for children that mutate auth
 defineExpose({ loadInit })
 </script>
 
@@ -98,7 +140,7 @@ defineExpose({ loadInit })
       <template #user-info>
         <div class="user-info">
           <router-link v-if="auth" to="/account">{{ auth.username }}</router-link>
-          <router-link v-else-if="features.registrationEnabled" to="/login">Login</router-link>
+          <router-link v-else to="/login">Login</router-link>
         </div>
       </template>
     </Header>

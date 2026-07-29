@@ -12,6 +12,9 @@ import {
   WebhookIcon,
   PlusSignIcon,
   File01Icon,
+  Link01Icon,
+  Settings01Icon,
+  Activity01Icon,
 } from '@hugeicons/core-free-icons'
 import { client } from '../composables/client'
 import { initState, loadInit, setUser } from '../composables/useInit'
@@ -54,6 +57,21 @@ function rebuildNav() {
       name: 'webhooks',
       icon: WebhookIcon,
       description: 'Configure event webhook endpoints',
+    })
+    n.addCallback('Header links', () => router.push('/admin/header-links'), {
+      name: 'header-links',
+      icon: Link01Icon,
+      description: 'Manage custom links in the site header',
+    })
+    n.addCallback('Settings', () => router.push('/admin/settings'), {
+      name: 'settings',
+      icon: Settings01Icon,
+      description: 'Edit configuration variables',
+    })
+    n.addCallback('Diagnostics', () => router.push('/admin/diagnostics'), {
+      name: 'diagnostics',
+      icon: Activity01Icon,
+      description: 'View runtime and database diagnostics',
     })
     n.addCallback('Audit logs', () => router.push('/admin/logs'), {
       name: 'logs',

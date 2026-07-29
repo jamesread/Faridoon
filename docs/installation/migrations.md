@@ -10,4 +10,4 @@ cd /var/faridoon/database
 sql-migrate up
 ```
 
-Current required migration id: `6.audit-logs.sql` (audit log table; earlier migrations include webhooks and password column width).
+Current required migration id: `9.cvars.sql` (configuration variables table; earlier migrations include quote submitter columns, header links, audit logs, webhooks and password column width).

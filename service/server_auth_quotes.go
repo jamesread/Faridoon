@@ -28,17 +28,18 @@ func (s *FaridoonServer) Init(ctx context.Context, _ *connect.Request[faridoonv1
 		pending = int32(n)
 	}
 	return connect.NewResponse(&faridoonv1.InitResponse{
-		Version: buildinfo.Version, SiteTitle: s.cfg.SiteTitle, Features: s.featureFlags(),
+		Version: buildinfo.Version, SiteTitle: s.siteTitle(ctx), Features: s.featureFlags(ctx),
 		User: s.toProtoUser(su), PendingApprovals: pending, WebhookEvents: webhook.SupportedEvents,
+		HeaderLinks: s.loadEnabledHeaderLinks(ctx),
 	}), nil
 }
 
-func (s *FaridoonServer) featureFlags() *faridoonv1.Features {
+func (s *FaridoonServer) featureFlags(ctx context.Context) *faridoonv1.Features {
 	return &faridoonv1.Features{
-		VotingEnabled:             s.cfg.Features.EnableVoting,
-		RegistrationEnabled:       !s.cfg.Features.DisableRegistration,
-		GuestAddEnabled:           !s.cfg.Features.GuestsDisableAdd,
-		SyntaxHighlightingEnabled: s.cfg.Features.EnableSyntaxHighlighting,
+		VotingEnabled:             s.votingEnabled(ctx),
+		RegistrationEnabled:       s.registrationEnabled(ctx),
+		GuestAddEnabled:           s.guestAddEnabled(ctx),
+		SyntaxHighlightingEnabled: s.syntaxHighlightingEnabled(ctx),
 	}
 }
 
@@ -188,7 +189,7 @@ func (s *FaridoonServer) createRegisteredUser(ctx context.Context, username, pas
 }
 
 func (s *FaridoonServer) Register(ctx context.Context, req *connect.Request[faridoonv1.RegisterRequest]) (*connect.Response[faridoonv1.RegisterResponse], error) {
-	if s.cfg.Features.DisableRegistration {
+	if !s.registrationEnabled(ctx) {
 		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("registration disabled"))
 	}
 	if valErr := validateRegisterRequest(req.Msg); valErr != nil {
@@ -257,11 +258,30 @@ func (s *FaridoonServer) GetQuote(ctx context.Context, req *connect.Request[fari
 	if q == nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("quote not found"))
 	}
+	if !q.Approved {
+		if gateErr := s.authorizePendingQuoteRead(ctx, q); gateErr != nil {
+			return nil, gateErr
+		}
+	}
 	return connect.NewResponse(&faridoonv1.GetQuoteResponse{Quote: s.formatQuote(q)}), nil
 }
 
-func canGuestAdd(su *sessionUser, guestsDisableAdd bool) error {
-	if su == nil && guestsDisableAdd {
+func (s *FaridoonServer) authorizePendingQuoteRead(ctx context.Context, q *store.QuoteRow) error {
+	su, err := s.loadSessionUser(ctx)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	if su != nil && su.hasPriv("APPROVE_QUOTES") {
+		return nil
+	}
+	if su != nil && q.SubmittedByUserID > 0 && su.ID == q.SubmittedByUserID {
+		return nil
+	}
+	return connect.NewError(connect.CodeNotFound, fmt.Errorf("quote not found"))
+}
+
+func canGuestAdd(su *sessionUser, guestAddEnabled bool) error {
+	if su == nil && !guestAddEnabled {
 		return fmt.Errorf("guests cannot add quotes")
 	}
 	return nil
@@ -292,9 +312,16 @@ func (s *FaridoonServer) dispatchPendingApproval(ctx context.Context, id, approv
 	}
 }
 
+func submitterFromSession(su *sessionUser) (userID int, username string) {
+	if su == nil {
+		return 0, "Guest"
+	}
+	return su.ID, su.Username
+}
+
 func (s *FaridoonServer) CreateQuote(ctx context.Context, req *connect.Request[faridoonv1.CreateQuoteRequest]) (*connect.Response[faridoonv1.CreateQuoteResponse], error) {
 	su, _ := s.loadSessionUser(ctx)
-	if guestErr := canGuestAdd(su, s.cfg.Features.GuestsDisableAdd); guestErr != nil {
+	if guestErr := canGuestAdd(su, s.guestAddEnabled(ctx)); guestErr != nil {
 		return nil, connect.NewError(connect.CodePermissionDenied, guestErr)
 	}
 	content, contentErr := normalizeQuoteContent(req.Msg.Content)
@@ -302,7 +329,8 @@ func (s *FaridoonServer) CreateQuote(ctx context.Context, req *connect.Request[f
 		return nil, connect.NewError(connect.CodeInvalidArgument, contentErr)
 	}
 	approval := approvalForUser(su)
-	id, err := s.store.CreateQuote(ctx, content, approval, req.Msg.SyntaxHighlighting)
+	userID, username := submitterFromSession(su)
+	id, err := s.store.CreateQuote(ctx, content, approval, req.Msg.SyntaxHighlighting, userID, username)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -358,7 +386,7 @@ func (s *FaridoonServer) castVoteAndSum(ctx context.Context, quoteID, userID, de
 }
 
 func (s *FaridoonServer) VoteQuote(ctx context.Context, req *connect.Request[faridoonv1.VoteQuoteRequest]) (*connect.Response[faridoonv1.VoteQuoteResponse], error) {
-	if !s.cfg.Features.EnableVoting {
+	if !s.votingEnabled(ctx) {
 		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("voting disabled"))
 	}
 	su, err := s.requireAuth(ctx)
@@ -368,6 +396,13 @@ func (s *FaridoonServer) VoteQuote(ctx context.Context, req *connect.Request[far
 	delta := int(req.Msg.Delta)
 	if deltaErr := validateVoteDelta(delta); deltaErr != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, deltaErr)
+	}
+	q, findErr := s.store.FindQuote(ctx, int(req.Msg.Id))
+	if findErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, findErr)
+	}
+	if q == nil || !q.Approved {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("quote not found"))
 	}
 	sum, voteErr := s.castVoteAndSum(ctx, int(req.Msg.Id), su.ID, delta)
 	if voteErr != nil {
@@ -397,9 +432,35 @@ func (s *FaridoonServer) ApproveQuote(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, err
 	}
+	raw, findErr := s.store.FindQuoteRaw(ctx, int(req.Msg.Id))
+	if findErr != nil || raw == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("quote not found"))
+	}
+	if raw.Approved {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("quote is already approved"))
+	}
 	if approveErr := s.store.ApproveQuote(ctx, int(req.Msg.Id)); approveErr != nil {
 		return nil, connect.NewError(connect.CodeInternal, approveErr)
 	}
 	s.audit(ctx, su, "quote.approve", "quote", int(req.Msg.Id), "")
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (s *FaridoonServer) RejectQuote(ctx context.Context, req *connect.Request[faridoonv1.RejectQuoteRequest]) (*connect.Response[emptypb.Empty], error) {
+	su, err := s.requirePriv(ctx, "APPROVE_QUOTES")
+	if err != nil {
+		return nil, err
+	}
+	raw, findErr := s.store.FindQuoteRaw(ctx, int(req.Msg.Id))
+	if findErr != nil || raw == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("quote not found"))
+	}
+	if raw.Approved {
+		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("quote is already approved"))
+	}
+	if delErr := s.store.DeleteQuote(ctx, int(req.Msg.Id)); delErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, delErr)
+	}
+	s.audit(ctx, su, "quote.reject", "quote", int(req.Msg.Id), "")
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }

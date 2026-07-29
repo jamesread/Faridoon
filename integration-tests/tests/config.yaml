@@ -1,7 +1,7 @@
 configVersion: 1
 listen: ":8080"
 siteTitle: Faridoon Test
-requiredMigration: 6.audit-logs.sql
+requiredMigration: 9.cvars.sql
 
 database:
   host: 127.0.0.1
@@ -9,9 +9,6 @@ database:
   name: faridoon
   user: user
   password: password
-
-features:
-  enableVoting: true
 
 auth:
   localSessionCookieName: faridoon-sid

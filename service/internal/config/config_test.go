@@ -8,7 +8,7 @@ import (
 
 func TestDefaults(t *testing.T) {
 	cfg := Defaults()
-	if cfg.RequiredMigration != "6.audit-logs.sql" {
+	if cfg.RequiredMigration != "9.cvars.sql" {
 		t.Fatalf("migration=%s", cfg.RequiredMigration)
 	}
 	if cfg.Listen != ":8080" {

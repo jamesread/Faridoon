@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 	"slices"
-	"strings"
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
@@ -60,13 +59,6 @@ func (s *FaridoonServer) authUser(ctx context.Context) *authpublic.Authenticated
 	return s.authFromRequest(r)
 }
 
-func mergePrivileges(privs []string, usergroupLine string) []string {
-	if len(privs) == 0 && usergroupLine != "" {
-		return strings.Split(usergroupLine, ",")
-	}
-	return privs
-}
-
 func (s *FaridoonServer) loadSessionUser(ctx context.Context) (*sessionUser, error) {
 	au := s.authUser(ctx)
 	if au == nil {
@@ -80,7 +72,6 @@ func (s *FaridoonServer) loadSessionUser(ctx context.Context) (*sessionUser, err
 	if err != nil {
 		return nil, err
 	}
-	privs = mergePrivileges(privs, au.UsergroupLine)
 	return &sessionUser{
 		Username: row.Username, GroupTitle: row.GroupTitle, Privileges: privs,
 		ID: row.ID, GroupID: row.GroupID,
@@ -98,7 +89,7 @@ func (su *sessionUser) hasPriv(key string) bool {
 }
 
 func (su *sessionUser) isAdmin() bool {
-	return su.hasPriv("SUPERUSER") || su.hasPriv("ADMIN")
+	return su.hasPriv("SUPERUSER")
 }
 
 func (s *FaridoonServer) requireAuth(ctx context.Context) (*sessionUser, error) {
@@ -156,10 +147,14 @@ func (s *FaridoonServer) toProtoUserRow(ctx context.Context, row *store.UserRow)
 }
 
 func (s *FaridoonServer) formatQuote(q *store.QuoteRow) *faridoonv1.Quote {
+	if q == nil {
+		return nil
+	}
 	f := s.formatter.Format(q.ID, q.Content, q.Created, q.VoteCount, q.Approved, q.SyntaxHighlighting)
 	out := &faridoonv1.Quote{
 		Id: int32(f.ID), Content: f.Content, Created: f.Created, VoteCount: int32(f.VoteCount),
 		Approved: f.Approved, SyntaxHighlighting: f.SyntaxHighlighting,
+		SubmittedByUserId: int32(q.SubmittedByUserID), SubmittedByUsername: q.SubmittedByUsername,
 	}
 	for _, line := range f.Lines {
 		out.Lines = append(out.Lines, &faridoonv1.QuoteLine{

@@ -58,6 +58,9 @@ func run() error {
 	if migErr := assertMigration(context.Background(), st, cfg.RequiredMigration); migErr != nil {
 		return migErr
 	}
+	if cvarErr := ensureDefaultCvars(context.Background(), st, cfg.SiteTitle); cvarErr != nil {
+		return fmt.Errorf("cvars: %w", cvarErr)
+	}
 
 	authCtx, err := setupAuth(cfg)
 	if err != nil {

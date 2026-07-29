@@ -14,13 +14,15 @@ const (
 )
 
 type QuoteRow struct {
-	Content            string
-	Created            string
-	SyntaxHighlighting string
-	ID                 int
-	VoteCount          int
-	Approval           int
-	Approved           bool
+	Content             string
+	Created             string
+	SyntaxHighlighting  string
+	SubmittedByUsername string
+	ID                  int
+	VoteCount           int
+	Approval            int
+	SubmittedByUserID   int
+	Approved            bool
 }
 
 type UserRow struct {
@@ -70,6 +72,17 @@ type LogEntry struct {
 	EntityID      int
 }
 
+type HeaderLinkRow struct {
+	Title        string
+	URL          string
+	Created      string
+	Updated      string
+	ID           int
+	SortOrder    int
+	Enabled      bool
+	OpenInNewTab bool
+}
+
 type Store interface {
 	LatestMigration(ctx context.Context) (string, error)
 	FindQuote(ctx context.Context, id int) (*QuoteRow, error)
@@ -77,7 +90,11 @@ type Store interface {
 	ListApproved(ctx context.Context, order string, page, perPage int) ([]QuoteRow, int, error)
 	ListPending(ctx context.Context) ([]QuoteRow, error)
 	CountPending(ctx context.Context) (int, error)
-	CreateQuote(ctx context.Context, content string, approval int, syntax string) (int, error)
+	CountApproved(ctx context.Context) (int, error)
+	CountUsersWithPrivilege(ctx context.Context, key string) (int, error)
+	CountUsersWithPrivilegeExcludingGroup(ctx context.Context, key string, groupID int) (int, error)
+	FindPermission(ctx context.Context, id int) (*PermissionRow, error)
+	CreateQuote(ctx context.Context, content string, approval int, syntax string, submittedByUserID int, submittedByUsername string) (int, error)
 	UpdateQuote(ctx context.Context, id int, content, syntax string) error
 	ApproveQuote(ctx context.Context, id int) error
 	DeleteQuote(ctx context.Context, id int) error
@@ -93,6 +110,8 @@ type Store interface {
 	ListUsers(ctx context.Context) ([]UserRow, error)
 	UserPrivileges(ctx context.Context, userID, groupID int) ([]string, error)
 	ListGroups(ctx context.Context) ([]GroupRow, error)
+	FindGroup(ctx context.Context, id int) (*GroupRow, error)
+	GroupPermissions(ctx context.Context, groupID int) ([]GroupPermissionRow, error)
 	GroupsWithPermissions(ctx context.Context) ([]GroupRow, map[int][]GroupPermissionRow, error)
 	CreateGroup(ctx context.Context, title string) (int, error)
 	DeleteGroup(ctx context.Context, id int) error
@@ -107,6 +126,23 @@ type Store interface {
 	DeleteWebhook(ctx context.Context, id int) error
 	InsertLog(ctx context.Context, entry LogEntry) error
 	ListLogs(ctx context.Context, page, pageSize int) ([]LogEntry, int, error)
+	ListHeaderLinks(ctx context.Context) ([]HeaderLinkRow, error)
+	ListEnabledHeaderLinks(ctx context.Context) ([]HeaderLinkRow, error)
+	FindHeaderLink(ctx context.Context, id int) (*HeaderLinkRow, error)
+	CreateHeaderLink(ctx context.Context, title, url string, sortOrder int, enabled, openInNewTab bool) (int, error)
+	UpdateHeaderLink(ctx context.Context, id int, title, url string, sortOrder int, enabled, openInNewTab bool) error
+	DeleteHeaderLink(ctx context.Context, id int) error
+	ListCvars(ctx context.Context) ([]CvarRow, error)
+	FindCvar(ctx context.Context, key string) (*CvarRow, error)
+	InsertCvarIfMissing(ctx context.Context, row CvarRow) error
+	UpdateCvar(ctx context.Context, key string, valueInt int, valueString string) error
+}
+
+type CvarRow struct {
+	Key         string
+	MainType    string
+	ValueString string
+	ValueInt    int
 }
 
 type MySQL struct {
@@ -157,8 +193,9 @@ func (m *MySQL) LatestMigration(ctx context.Context) (string, error) {
 
 func quoteSelectSQL() string {
 	return `
-SELECT q.id, q.content, COALESCE(DATE_FORMAT(q.created, '%Y-%m-%d'), ''),
-  q.approval, COALESCE(q.syntaxHighlighting, ''), COALESCE(v.voteCount, 0)
+SELECT q.id, q.content, COALESCE(DATE_FORMAT(q.created, '%Y-%m-%d %H:%i:%s'), ''),
+  q.approval, COALESCE(q.syntaxHighlighting, ''), COALESCE(v.voteCount, 0),
+  COALESCE(q.submitted_by_user_id, 0), COALESCE(q.submitted_by_username, '')
 FROM quotes q
 LEFT JOIN (
   SELECT quote, COALESCE(SUM(delta), 0) AS voteCount FROM votes GROUP BY quote
@@ -168,7 +205,8 @@ LEFT JOIN (
 func scanQuote(s interface{ Scan(...any) error }) (*QuoteRow, error) {
 	var q QuoteRow
 	var approval int
-	if err := s.Scan(&q.ID, &q.Content, &q.Created, &approval, &q.SyntaxHighlighting, &q.VoteCount); err != nil {
+	if err := s.Scan(&q.ID, &q.Content, &q.Created, &approval, &q.SyntaxHighlighting, &q.VoteCount,
+		&q.SubmittedByUserID, &q.SubmittedByUsername); err != nil {
 		return nil, err
 	}
 	q.Approval = approval
@@ -210,7 +248,9 @@ func (m *MySQL) FindQuote(ctx context.Context, id int) (*QuoteRow, error) {
 
 func (m *MySQL) FindQuoteRaw(ctx context.Context, id int) (*QuoteRow, error) {
 	row := m.db.QueryRowContext(ctx,
-		`SELECT id, content, COALESCE(DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s'), ''), approval, COALESCE(syntaxHighlighting, ''), 0 FROM quotes WHERE id = ?`, id)
+		`SELECT id, content, COALESCE(DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s'), ''), approval,
+		 COALESCE(syntaxHighlighting, ''), 0, COALESCE(submitted_by_user_id, 0), COALESCE(submitted_by_username, '')
+		 FROM quotes WHERE id = ?`, id)
 	q, err := scanQuote(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -254,10 +294,63 @@ func (m *MySQL) CountPending(ctx context.Context) (int, error) {
 	return n, err
 }
 
-func (m *MySQL) CreateQuote(ctx context.Context, content string, approval int, syntax string) (int, error) {
+func (m *MySQL) CountApproved(ctx context.Context) (int, error) {
+	var n int
+	err := m.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM quotes WHERE approval = 1`).Scan(&n)
+	return n, err
+}
+
+func (m *MySQL) CountUsersWithPrivilege(ctx context.Context, key string) (int, error) {
+	var n int
+	err := m.db.QueryRowContext(ctx, `
+SELECT COUNT(*) FROM (
+  SELECT u.id AS id FROM users u
+  JOIN privileges_g pg ON pg.`+colGroup+` = u.`+colGroup+`
+  JOIN permissions p ON p.id = pg.permission AND p.`+colKey+` = ?
+  UNION
+  SELECT pu.user AS id FROM privileges_u pu
+  JOIN permissions p ON p.id = pu.permission AND p.`+colKey+` = ?
+) t`, key, key).Scan(&n)
+	return n, err
+}
+
+func (m *MySQL) CountUsersWithPrivilegeExcludingGroup(ctx context.Context, key string, groupID int) (int, error) {
+	var n int
+	err := m.db.QueryRowContext(ctx, `
+SELECT COUNT(*) FROM (
+  SELECT u.id AS id FROM users u
+  JOIN privileges_g pg ON pg.`+colGroup+` = u.`+colGroup+`
+  JOIN permissions p ON p.id = pg.permission AND p.`+colKey+` = ?
+  WHERE u.`+colGroup+` <> ?
+  UNION
+  SELECT pu.user AS id FROM privileges_u pu
+  JOIN permissions p ON p.id = pu.permission AND p.`+colKey+` = ?
+) t`, key, groupID, key).Scan(&n)
+	return n, err
+}
+
+func (m *MySQL) FindPermission(ctx context.Context, id int) (*PermissionRow, error) {
+	row := m.db.QueryRowContext(ctx,
+		"SELECT id, "+colKey+", COALESCE(description, '') FROM permissions WHERE id = ?", id)
+	var p PermissionRow
+	if err := row.Scan(&p.ID, &p.Key, &p.Description); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (m *MySQL) CreateQuote(ctx context.Context, content string, approval int, syntax string, submittedByUserID int, submittedByUsername string) (int, error) {
+	var userID any
+	if submittedByUserID > 0 {
+		userID = submittedByUserID
+	}
 	res, err := m.db.ExecContext(ctx,
-		`INSERT INTO quotes (content, approval, syntaxHighlighting, created) VALUES (?, ?, NULLIF(?, ''), NOW())`,
-		content, approval, syntax)
+		`INSERT INTO quotes (content, approval, syntaxHighlighting, created, submitted_by_user_id, submitted_by_username)
+		 VALUES (?, ?, NULLIF(?, ''), NOW(), ?, NULLIF(?, ''))`,
+		content, approval, syntax, userID, submittedByUsername)
 	if err != nil {
 		return 0, err
 	}
@@ -453,6 +546,22 @@ func (m *MySQL) ListGroups(ctx context.Context) ([]GroupRow, error) {
 		out = append(out, g)
 	}
 	return out, nil
+}
+
+func (m *MySQL) FindGroup(ctx context.Context, id int) (*GroupRow, error) {
+	row := m.db.QueryRowContext(ctx, `SELECT id, title FROM groups WHERE id = ?`, id)
+	var g GroupRow
+	if err := row.Scan(&g.ID, &g.Title); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &g, nil
+}
+
+func (m *MySQL) GroupPermissions(ctx context.Context, groupID int) ([]GroupPermissionRow, error) {
+	return m.loadGroupPerms(ctx, groupID)
 }
 
 func (m *MySQL) loadGroupPerms(ctx context.Context, groupID int) ([]GroupPermissionRow, error) {
@@ -726,4 +835,147 @@ func (m *MySQL) ListLogs(ctx context.Context, page, pageSize int) ([]LogEntry, i
 		return nil, 0, err
 	}
 	return out, total, nil
+}
+
+func headerLinkSelectSQL() string {
+	return `SELECT id, title, url, sort_order, enabled, open_in_new_tab,
+		 COALESCE(DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s'), ''),
+		 COALESCE(DATE_FORMAT(updated, '%Y-%m-%d %H:%i:%s'), '')
+		 FROM header_links`
+}
+
+func scanHeaderLink(s interface{ Scan(...any) error }) (*HeaderLinkRow, error) {
+	var row HeaderLinkRow
+	var enabled, openInNewTab int
+	if err := s.Scan(&row.ID, &row.Title, &row.URL, &row.SortOrder, &enabled, &openInNewTab, &row.Created, &row.Updated); err != nil {
+		return nil, err
+	}
+	row.Enabled = enabled == 1
+	row.OpenInNewTab = openInNewTab == 1
+	return &row, nil
+}
+
+func scanHeaderLinks(rows *sql.Rows) ([]HeaderLinkRow, error) {
+	var out []HeaderLinkRow
+	for rows.Next() {
+		row, err := scanHeaderLink(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *row)
+	}
+	return out, nil
+}
+
+func boolToTinyInt(v bool) int {
+	if v {
+		return 1
+	}
+	return 0
+}
+
+func (m *MySQL) ListHeaderLinks(ctx context.Context) ([]HeaderLinkRow, error) {
+	rows, err := m.db.QueryContext(ctx, headerLinkSelectSQL()+" ORDER BY sort_order, id")
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	return scanHeaderLinks(rows)
+}
+
+func (m *MySQL) ListEnabledHeaderLinks(ctx context.Context) ([]HeaderLinkRow, error) {
+	rows, err := m.db.QueryContext(ctx, headerLinkSelectSQL()+" WHERE enabled = 1 ORDER BY sort_order, id")
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	return scanHeaderLinks(rows)
+}
+
+func (m *MySQL) FindHeaderLink(ctx context.Context, id int) (*HeaderLinkRow, error) {
+	row := m.db.QueryRowContext(ctx, headerLinkSelectSQL()+" WHERE id = ?", id)
+	link, err := scanHeaderLink(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	return link, err
+}
+
+func (m *MySQL) CreateHeaderLink(ctx context.Context, title, url string, sortOrder int, enabled, openInNewTab bool) (int, error) {
+	now := time.Now()
+	res, err := m.db.ExecContext(ctx,
+		`INSERT INTO header_links (title, url, sort_order, enabled, open_in_new_tab, created, updated)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		title, url, sortOrder, boolToTinyInt(enabled), boolToTinyInt(openInNewTab), now, now)
+	if err != nil {
+		return 0, err
+	}
+	id, err := res.LastInsertId()
+	return int(id), err
+}
+
+func (m *MySQL) UpdateHeaderLink(ctx context.Context, id int, title, url string, sortOrder int, enabled, openInNewTab bool) error {
+	_, err := m.db.ExecContext(ctx,
+		`UPDATE header_links SET title = ?, url = ?, sort_order = ?, enabled = ?, open_in_new_tab = ?, updated = ?
+		 WHERE id = ? LIMIT 1`,
+		title, url, sortOrder, boolToTinyInt(enabled), boolToTinyInt(openInNewTab), time.Now(), id)
+	return err
+}
+
+func (m *MySQL) DeleteHeaderLink(ctx context.Context, id int) error {
+	_, err := m.db.ExecContext(ctx, `DELETE FROM header_links WHERE id = ? LIMIT 1`, id)
+	return err
+}
+
+func cvarSelectSQL() string {
+	return `SELECT cvar_key, COALESCE(cvar_value_int, 0), COALESCE(cvar_value_string, ''), cvar_main_type FROM cvars`
+}
+
+func scanCvar(s interface{ Scan(...any) error }) (*CvarRow, error) {
+	var row CvarRow
+	if err := s.Scan(&row.Key, &row.ValueInt, &row.ValueString, &row.MainType); err != nil {
+		return nil, err
+	}
+	return &row, nil
+}
+
+func (m *MySQL) ListCvars(ctx context.Context) ([]CvarRow, error) {
+	rows, err := m.db.QueryContext(ctx, cvarSelectSQL()+" ORDER BY cvar_key")
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var out []CvarRow
+	for rows.Next() {
+		row, err := scanCvar(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *row)
+	}
+	return out, nil
+}
+
+func (m *MySQL) FindCvar(ctx context.Context, key string) (*CvarRow, error) {
+	row := m.db.QueryRowContext(ctx, cvarSelectSQL()+" WHERE cvar_key = ?", key)
+	c, err := scanCvar(row)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	return c, err
+}
+
+func (m *MySQL) InsertCvarIfMissing(ctx context.Context, row CvarRow) error {
+	_, err := m.db.ExecContext(ctx,
+		`INSERT IGNORE INTO cvars (cvar_key, cvar_value_int, cvar_value_string, cvar_main_type)
+		 VALUES (?, ?, NULLIF(?, ''), ?)`,
+		row.Key, row.ValueInt, row.ValueString, row.MainType)
+	return err
+}
+
+func (m *MySQL) UpdateCvar(ctx context.Context, key string, valueInt int, valueString string) error {
+	_, err := m.db.ExecContext(ctx,
+		`UPDATE cvars SET cvar_value_int = ?, cvar_value_string = NULLIF(?, '') WHERE cvar_key = ? LIMIT 1`,
+		valueInt, valueString, key)
+	return err
 }

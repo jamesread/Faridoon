@@ -38,6 +38,8 @@ message Quote {
   bool approved = 5;
   string syntax_highlighting = 6;
   repeated QuoteLine lines = 7;
+  int32 submitted_by_user_id = 8;
+  string submitted_by_username = 9;
 }
 
 message InitRequest {}
@@ -49,6 +51,7 @@ message InitResponse {
   User user = 4;
   int32 pending_approvals = 5;
   repeated string webhook_events = 6;
+  repeated HeaderLink header_links = 7;
 }
 
 message GetCurrentUserRequest {}
@@ -137,6 +140,10 @@ message ApproveQuoteRequest {
   int32 id = 1;
 }
 
+message RejectQuoteRequest {
+  int32 id = 1;
+}
+
 message GroupPermission {
   int32 permission_id = 1;
   string key = 2;
@@ -172,6 +179,16 @@ message GetUserResponse {
   repeated Group groups = 2;
 }
 
+message GetGroupRequest {
+  int32 id = 1;
+}
+
+message GetGroupResponse {
+  Group group = 1;
+  repeated User members = 2;
+  repeated Permission permissions = 3;
+}
+
 message UpdateUserRequest {
   int32 id = 1;
   int32 group_id = 2;
@@ -179,6 +196,12 @@ message UpdateUserRequest {
 
 message DeleteUserRequest {
   int32 id = 1;
+}
+
+message ResetUserPasswordRequest {
+  int32 id = 1;
+  string password = 2;
+  string password_confirmation = 3;
 }
 
 message CreateGroupRequest {
@@ -266,6 +289,79 @@ message ListLogsResponse {
   int32 total = 4;
 }
 
+message HeaderLink {
+  int32 id = 1;
+  string title = 2;
+  string url = 3;
+  int32 sort_order = 4;
+  bool enabled = 5;
+  bool open_in_new_tab = 6;
+  string created = 7;
+  string updated = 8;
+}
+
+message ListHeaderLinksRequest {}
+
+message ListHeaderLinksResponse {
+  repeated HeaderLink links = 1;
+}
+
+message CreateHeaderLinkRequest {
+  string title = 1;
+  string url = 2;
+  int32 sort_order = 3;
+  bool enabled = 4;
+  bool open_in_new_tab = 5;
+}
+
+message CreateHeaderLinkResponse {
+  HeaderLink link = 1;
+}
+
+message UpdateHeaderLinkRequest {
+  int32 id = 1;
+  string title = 2;
+  string url = 3;
+  int32 sort_order = 4;
+  bool enabled = 5;
+  bool open_in_new_tab = 6;
+}
+
+message DeleteHeaderLinkRequest {
+  int32 id = 1;
+}
+
+message Cvar {
+  string key = 1;
+  string main_type = 2;
+  int32 value_int = 3;
+  string value_string = 4;
+}
+
+message ListCvarsRequest {}
+
+message ListCvarsResponse {
+  repeated Cvar cvars = 1;
+}
+
+message UpdateCvarRequest {
+  string key = 1;
+  int32 value_int = 2;
+  string value_string = 3;
+}
+
+message GetDiagnosticsRequest {}
+
+message GetDiagnosticsResponse {
+  string version = 1;
+  string site_title = 2;
+  string database_migration = 3;
+  string go_version = 4;
+  int32 user_count = 5;
+  int32 pending_approvals = 6;
+  int32 approved_quotes = 7;
+}
+
 service FaridoonService {
   rpc Init(InitRequest) returns (InitResponse);
   rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
@@ -282,11 +378,14 @@ service FaridoonService {
 
   rpc ListApprovals(ListApprovalsRequest) returns (ListApprovalsResponse);
   rpc ApproveQuote(ApproveQuoteRequest) returns (google.protobuf.Empty);
+  rpc RejectQuote(RejectQuoteRequest) returns (google.protobuf.Empty);
 
   rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
   rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc GetGroup(GetGroupRequest) returns (GetGroupResponse);
   rpc UpdateUser(UpdateUserRequest) returns (User);
   rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty);
+  rpc ResetUserPassword(ResetUserPasswordRequest) returns (google.protobuf.Empty);
   rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse);
   rpc DeleteGroup(DeleteGroupRequest) returns (google.protobuf.Empty);
   rpc GrantPermission(GrantPermissionRequest) returns (google.protobuf.Empty);
@@ -298,4 +397,14 @@ service FaridoonService {
   rpc DeleteWebhook(DeleteWebhookRequest) returns (google.protobuf.Empty);
 
   rpc ListLogs(ListLogsRequest) returns (ListLogsResponse);
+
+  rpc ListHeaderLinks(ListHeaderLinksRequest) returns (ListHeaderLinksResponse);
+  rpc CreateHeaderLink(CreateHeaderLinkRequest) returns (CreateHeaderLinkResponse);
+  rpc UpdateHeaderLink(UpdateHeaderLinkRequest) returns (HeaderLink);
+  rpc DeleteHeaderLink(DeleteHeaderLinkRequest) returns (google.protobuf.Empty);
+
+  rpc ListCvars(ListCvarsRequest) returns (ListCvarsResponse);
+  rpc UpdateCvar(UpdateCvarRequest) returns (Cvar);
+
+  rpc GetDiagnostics(GetDiagnosticsRequest) returns (GetDiagnosticsResponse);
 }

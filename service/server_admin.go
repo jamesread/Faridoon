@@ -3,12 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"connectrpc.com/connect"
 	"google.golang.org/protobuf/types/known/emptypb"
 
 	faridoonv1 "faridoon/service/gen/faridoon/v1"
+	"faridoon/service/internal/authpass"
 	"faridoon/service/internal/store"
 	"faridoon/service/internal/webhook"
 )
@@ -89,10 +91,85 @@ func (s *FaridoonServer) GetUser(ctx context.Context, req *connect.Request[farid
 	}), nil
 }
 
+func toProtoGroup(g *store.GroupRow, perms []store.GroupPermissionRow) *faridoonv1.Group {
+	pg := &faridoonv1.Group{Id: int32(g.ID), Title: g.Title}
+	for _, p := range perms {
+		pg.Permissions = append(pg.Permissions, &faridoonv1.GroupPermission{
+			PermissionId: int32(p.PermissionID), Key: p.Key, Description: p.Description,
+		})
+	}
+	return pg
+}
+
+func (s *FaridoonServer) membersForGroup(ctx context.Context, groupID int) ([]*faridoonv1.User, error) {
+	users, err := s.store.ListUsers(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var members []*faridoonv1.User
+	for i := range users {
+		if users[i].GroupID != groupID {
+			continue
+		}
+		members = append(members, s.toProtoUserRow(ctx, &users[i]))
+	}
+	return members, nil
+}
+
+func appendProtoPermissions(dst []*faridoonv1.Permission, perms []store.PermissionRow) []*faridoonv1.Permission {
+	for _, p := range perms {
+		dst = append(dst, &faridoonv1.Permission{
+			Id: int32(p.ID), Key: p.Key, Description: p.Description,
+		})
+	}
+	return dst
+}
+
+func (s *FaridoonServer) buildGetGroupResponse(ctx context.Context, row *store.GroupRow) (*faridoonv1.GetGroupResponse, error) {
+	perms, err := s.store.GroupPermissions(ctx, row.ID)
+	if err != nil {
+		return nil, err
+	}
+	members, err := s.membersForGroup(ctx, row.ID)
+	if err != nil {
+		return nil, err
+	}
+	allPerms, err := s.store.ListPermissions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return &faridoonv1.GetGroupResponse{
+		Group: toProtoGroup(row, perms), Members: members,
+		Permissions: appendProtoPermissions(nil, allPerms),
+	}, nil
+}
+
+func (s *FaridoonServer) GetGroup(ctx context.Context, req *connect.Request[faridoonv1.GetGroupRequest]) (*connect.Response[faridoonv1.GetGroupResponse], error) {
+	if _, err := s.requireAdmin(ctx); err != nil {
+		return nil, err
+	}
+	row, err := s.store.FindGroup(ctx, int(req.Msg.Id))
+	if err != nil || row == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("group not found"))
+	}
+	out, buildErr := s.buildGetGroupResponse(ctx, row)
+	if buildErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, buildErr)
+	}
+	return connect.NewResponse(out), nil
+}
+
 func (s *FaridoonServer) UpdateUser(ctx context.Context, req *connect.Request[faridoonv1.UpdateUserRequest]) (*connect.Response[faridoonv1.User], error) {
 	su, err := s.requireAdmin(ctx)
 	if err != nil {
 		return nil, err
+	}
+	target, findErr := s.store.FindUser(ctx, int(req.Msg.Id))
+	if findErr != nil || target == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
+	}
+	if lockErr := s.denyIfLastAdminDemotion(ctx, target, int(req.Msg.GroupId)); lockErr != nil {
+		return nil, lockErr
 	}
 	if updErr := s.store.UpdateUserGroup(ctx, int(req.Msg.Id), int(req.Msg.GroupId)); updErr != nil {
 		return nil, connect.NewError(connect.CodeInternal, updErr)
@@ -105,15 +182,93 @@ func (s *FaridoonServer) UpdateUser(ctx context.Context, req *connect.Request[fa
 	return connect.NewResponse(s.toProtoUserRow(ctx, row)), nil
 }
 
+func (s *FaridoonServer) denyIfLastAdminDemotion(ctx context.Context, target *store.UserRow, newGroupID int) error {
+	oldPrivs, err := s.store.UserPrivileges(ctx, target.ID, target.GroupID)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	if !slices.Contains(oldPrivs, "SUPERUSER") {
+		return nil
+	}
+	newPrivs, err := s.store.UserPrivileges(ctx, target.ID, newGroupID)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	if slices.Contains(newPrivs, "SUPERUSER") {
+		return nil
+	}
+	return s.denyIfSoleAdmin(ctx)
+}
+
+func (s *FaridoonServer) denyIfSoleAdmin(ctx context.Context) error {
+	n, err := s.store.CountUsersWithPrivilege(ctx, "SUPERUSER")
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	if n <= 1 {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("cannot remove the last admin"))
+	}
+	return nil
+}
+
 func (s *FaridoonServer) DeleteUser(ctx context.Context, req *connect.Request[faridoonv1.DeleteUserRequest]) (*connect.Response[emptypb.Empty], error) {
 	su, err := s.requireAdmin(ctx)
 	if err != nil {
 		return nil, err
 	}
+	if su.ID == int(req.Msg.Id) {
+		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("cannot delete your own account"))
+	}
+	target, findErr := s.store.FindUser(ctx, int(req.Msg.Id))
+	if findErr != nil || target == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
+	}
+	privs, privErr := s.store.UserPrivileges(ctx, target.ID, target.GroupID)
+	if privErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, privErr)
+	}
+	if slices.Contains(privs, "SUPERUSER") {
+		if lockErr := s.denyIfSoleAdmin(ctx); lockErr != nil {
+			return nil, lockErr
+		}
+	}
 	if delErr := s.store.DeleteUser(ctx, int(req.Msg.Id)); delErr != nil {
 		return nil, connect.NewError(connect.CodeInternal, delErr)
 	}
 	s.audit(ctx, su, "user.delete", "user", int(req.Msg.Id), "")
+	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func validateResetPassword(password, confirmation string) error {
+	if len(password) < 4 {
+		return fmt.Errorf("password must be at least 4 characters")
+	}
+	if password != confirmation {
+		return fmt.Errorf("password confirmation mismatch")
+	}
+	return nil
+}
+
+func (s *FaridoonServer) ResetUserPassword(ctx context.Context, req *connect.Request[faridoonv1.ResetUserPasswordRequest]) (*connect.Response[emptypb.Empty], error) {
+	su, err := s.requireAdmin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if valErr := validateResetPassword(req.Msg.Password, req.Msg.PasswordConfirmation); valErr != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, valErr)
+	}
+	row, findErr := s.store.FindUser(ctx, int(req.Msg.Id))
+	if findErr != nil || row == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
+	}
+	hash, hashErr := authpass.Hash(req.Msg.Password)
+	if hashErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, hashErr)
+	}
+	if updErr := s.store.UpdatePassword(ctx, row.ID, hash); updErr != nil {
+		return nil, connect.NewError(connect.CodeInternal, updErr)
+	}
+	s.audit(ctx, su, "user.reset_password", "user", row.ID, row.Username)
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
@@ -168,11 +323,32 @@ func (s *FaridoonServer) RevokePermission(ctx context.Context, req *connect.Requ
 	if err != nil {
 		return nil, err
 	}
+	if lockErr := s.denyIfRevokeRemovesLastAdmin(ctx, int(req.Msg.GroupId), int(req.Msg.PermissionId)); lockErr != nil {
+		return nil, lockErr
+	}
 	if revokeErr := s.store.RevokePermission(ctx, int(req.Msg.GroupId), int(req.Msg.PermissionId)); revokeErr != nil {
 		return nil, connect.NewError(connect.CodeInternal, revokeErr)
 	}
 	s.audit(ctx, su, "group.revoke_permission", "group", int(req.Msg.GroupId), detailf("permission_id=%d", req.Msg.PermissionId))
 	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (s *FaridoonServer) denyIfRevokeRemovesLastAdmin(ctx context.Context, groupID, permissionID int) error {
+	perm, err := s.store.FindPermission(ctx, permissionID)
+	if err != nil {
+		return connect.NewError(connect.CodeInternal, err)
+	}
+	if perm == nil || perm.Key != "SUPERUSER" {
+		return nil
+	}
+	remaining, countErr := s.store.CountUsersWithPrivilegeExcludingGroup(ctx, "SUPERUSER", groupID)
+	if countErr != nil {
+		return connect.NewError(connect.CodeInternal, countErr)
+	}
+	if remaining < 1 {
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("cannot remove the last admin"))
+	}
+	return nil
 }
 
 func (s *FaridoonServer) ListWebhooks(ctx context.Context, _ *connect.Request[faridoonv1.ListWebhooksRequest]) (*connect.Response[faridoonv1.ListWebhooksResponse], error) {

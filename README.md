@@ -35,10 +35,11 @@ Documentation is available at: https://jamesread.github.io/Faridoon/ , the recom
 
 * Automatic highlighting of usernames.
 * Semi-intelligent removal of line breaks and weird characters.
-* User login and registration, with support for admins and non-admins.
-* Approval system for guest and non-admin submissions.
-* Admin webhooks UI (`approval.requested`).
-* Easy configuration via YAML (`/config/config.yaml`) and environment variables.
+* User login and registration, with admins and privilege-based moderators.
+* Approval queue for guest and non-privileged submissions (reject deletes the quote).
+* Admin Settings (database cvars) for site title, voting, registration, guest add, and syntax highlighting.
+* Header links, webhooks (`approval.requested`), audit logs, and diagnostics.
+* YAML config for listen/database/auth; environment variables for database connectivity (and a few bootstrap values).
 
 ## **Faridoon is a No-Nonsense Open Source project;**
 

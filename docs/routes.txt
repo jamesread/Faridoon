@@ -7,25 +7,37 @@ SPA (Vue Router) is served for browser paths. API is ConnectRPC under
 
 Init, GetCurrentUser, Login, Logout, Register
 ListQuotes, GetQuote, CreateQuote, UpdateQuote, DeleteQuote, VoteQuote
-ListApprovals, ApproveQuote
-ListUsers, GetUser, UpdateUser, DeleteUser
+ListApprovals, ApproveQuote, RejectQuote
+ListUsers, GetUser, GetGroup, UpdateUser, DeleteUser, ResetUserPassword
 CreateGroup, DeleteGroup, GrantPermission, RevokePermission
 ListWebhooks, CreateWebhook, UpdateWebhook, DeleteWebhook
+ListHeaderLinks, CreateHeaderLink, UpdateHeaderLink, DeleteHeaderLink
+ListCvars, UpdateCvar
+GetDiagnostics
 ListLogs
 
 ## SPA paths
 
 / /quotes /quotes/create /quotes/:id /quotes/:id/edit
 /login /register /account /approvals
-/admin/users /admin/users/:id/edit
+/admin/users /admin/users/:id /admin/users/:id/edit
+/admin/groups/create /admin/groups/:id
 /admin/webhooks /admin/webhooks/create
+/admin/header-links /admin/header-links/create
+/admin/settings
+/admin/diagnostics
 /admin/logs
 
 ## Privileges
 
-SUPERUSER — admin gate
-APPROVE_QUOTES — approvals queue; quote edit
+SUPERUSER — admin gate (implies all privileges)
+APPROVE_QUOTES — approvals queue; quote edit; reject pending
 BYPASS_APPROVAL — new quotes skip approval queue
+
+Unapproved quotes are only readable by approvers or the submitting user.
+Voting is limited to existing approved quotes when `enable_voting` is on.
+Feature toggles (voting, registration, guest add, syntax highlighting, site title) are cvars under /admin/settings.
+The last SUPERUSER cannot be demoted, deleted, or have SUPERUSER revoked from their only granting group.
 
 ## Metrics
 

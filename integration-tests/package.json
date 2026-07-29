@@ -6,7 +6,7 @@
     "test:run": "node run-tests.js"
   },
   "devDependencies": {
-    "mocha": "^11.1.0",
-    "selenium-webdriver": "^4.31.0"
+    "mocha": "^11.7.6",
+    "selenium-webdriver": "^4.46.0"
   }
 }

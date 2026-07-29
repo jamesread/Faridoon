@@ -3,7 +3,7 @@ import { RouterLink } from 'vue-router'
 
 defineProps({
   quote: { type: Object, required: true },
-  votingEnabled: { type: Boolean, default: true },
+  votingEnabled: { type: Boolean, default: false },
   canEdit: { type: Boolean, default: false },
 })
 
@@ -21,6 +21,7 @@ const emit = defineEmits(['vote'])
       <div class="quote-meta">
         <RouterLink :to="`/quotes/${quote.id}`">#{{ quote.id }}</RouterLink>
         <span>{{ quote.created }}</span>
+        <span v-if="quote.submittedByUsername" class="subtle">by {{ quote.submittedByUsername }}</span>
         <RouterLink v-if="canEdit" :to="`/quotes/${quote.id}/edit`">Edit</RouterLink>
       </div>
       <div v-for="(line, idx) in quote.lines" :key="idx" class="quote-line">
@@ -30,6 +31,9 @@ const emit = defineEmits(['vote'])
           :class="`username-color-${line.usernameColor || 1}`"
         >{{ line.username }}:</span>
         <span>{{ line.content }}</span>
+      </div>
+      <div v-if="$slots.default" class="quote-actions">
+        <slot />
       </div>
     </div>
   </section>
