@@ -45,3 +45,11 @@ function requireDatabaseVersion(string $requiredMigration)
         startupError('Faridoon requires database version ' . $requiredMigration . ' but the database is at version ' . $latestVersion . '. Please <a href = "http://jamesread.github.io/Faridoon/installation/migrations/">run database migrations</a>.');
     }
 }
+
+function validateConfig() {
+    // Validate ITEMS_PER_PAGE
+    $limit = filter_var($cfg->get('ITEMS_PER_PAGE'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+    if ($limit === false) {
+        startupError('ITEMS_PER_PAGE must be a positive integer');
+    }
+}

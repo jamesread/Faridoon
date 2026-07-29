@@ -35,6 +35,7 @@ DatabaseFactory::registerInstance($db);
 require_once 'includes/startup.php';
 
 requireDatabaseVersion('3.charset-utf8mb4.sql');
+validateConfig();
 
 require_once 'includes/functionality.php';
 
