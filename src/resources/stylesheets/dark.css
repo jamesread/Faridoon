@@ -102,7 +102,7 @@ table.row-hover tr:hover td {
 
 
 footer span {
-  background-color: #444;  
+  background-color: #444;
 }
 
 input[type="text"],
@@ -129,7 +129,7 @@ textarea {
   border-color: var(--border-color);
 }
 
-.grid-boxed .stat-display { 
+.grid-boxed .stat-display {
   background-color: var(--standout-bg-color);
   border-color: var(--border-color) !important;
 }

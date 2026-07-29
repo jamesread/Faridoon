@@ -1,6 +1,6 @@
 /** https://github.com/jamesread/femtocrank **/
 
-@layer components, karma; 
+@layer components, karma;
 
 @layer components {
 :root {
@@ -51,7 +51,7 @@ body {
   color: var(--text-color);
 }
 
-a, a:visited { 
+a, a:visited {
   color: blue;
   text-decoration: none;
 }
@@ -61,13 +61,13 @@ a:hover {
 }
 
 a.active {
-	text-decoration: underline;
+    text-decoration: underline;
 }
 
 ul {
-	list-style: '\25b9    ';
-	list-style-position: outside;
-	padding-left: 1.4em;
+    list-style: '\25b9    ';
+    list-style-position: outside;
+    padding-left: 1.4em;
 }
 
 main {
@@ -91,11 +91,11 @@ section {
   &.small {
     max-width: 320px;
     border-radius: .8em;
-  } 
+  }
 }
 
 section.small form {
-	grid-template-columns: 1fr;
+    grid-template-columns: 1fr;
 }
 
 section.small fieldset {
@@ -107,26 +107,26 @@ section.with-header-and-content {
 }
 
 section .section-header {
-	background-color: #f8f9fa;
-	border-radius: .4em;
-	border-bottom-left-radius: 0;
-	border-bottom-right-radius: 0;
-	border-bottom: 1px solid var(--border-color);
-	padding-left: 1em;
-	padding-right: .4em;
-	padding-top: .4em;
-	padding-bottom: .4em;
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	align-items: center;
-	gap: 1em;
+    background-color: #f8f9fa;
+    border-radius: .4em;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: 1px solid var(--border-color);
+    padding-left: 1em;
+    padding-right: .4em;
+    padding-top: .4em;
+    padding-bottom: .4em;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1em;
 }
 
 section .section-header h2 {
-	margin: 0;
-	padding-top: .5em;
-	padding-bottom: .5em;
+    margin: 0;
+    padding-top: .5em;
+    padding-bottom: .5em;
 }
 
 section .section-header div[role="toolbar"] {
@@ -139,24 +139,24 @@ section .section-header .button {
 
 section .section-subheader {
     padding-left: 1em;
-	padding-top: .4em;
-	padding-bottom: .4em;
-	border-bottom: 1px solid var(--border-color);
+    padding-top: .4em;
+    padding-bottom: .4em;
+    border-bottom: 1px solid var(--border-color);
 }
 
 section .section-subheader h3 {
-	font-weight: 600;
-	font-size: 1.1em;
-	padding: 0;
-	margin: 0;
+    font-weight: 600;
+    font-size: 1.1em;
+    padding: 0;
+    margin: 0;
 }
 
 section .section-content *:first-child {
-	margin-top: 0;
+    margin-top: 0;
 }
 
 section .section-content *:last-child {
-	margin-bottom: 0;
+    margin-bottom: 0;
 }
 
 .padding {
@@ -276,17 +276,17 @@ pre {
 }
 
 .annotation-key {
-	border-radius: .4em 0 0 .4em;
+    border-radius: .4em 0 0 .4em;
   border-right: 1px solid var(--border-color);
   padding-right: .4em;
-	display: inline-block;
-	color: #666;
+    display: inline-block;
+    color: #666;
 }
 
 .annotation-val {
-	border-radius: 0 .4em .4em 0;
-	display: inline-block;
-	color: black;
+    border-radius: 0 .4em .4em 0;
+    display: inline-block;
+    color: black;
 }
 
 .notification {
@@ -381,10 +381,10 @@ textarea[readonly] {
   font-style: italic;
 }
 
-input[type="text"], 
-input[type="email"], 
-input[type="password"], 
-input[type="number"], 
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
 input[type="url"],
 input[type="datetime-local"] {
   padding: 1em;
@@ -401,8 +401,8 @@ form input[type="checkbox"] {
 
 /**
 input:invalid {
-	border: 1px solid red;
-	box-shadow: 0 0 5px red;
+    border: 1px solid red;
+    box-shadow: 0 0 5px red;
 }
 **/
 
@@ -677,7 +677,7 @@ aside {
   z-index: 2; /* So the sidebar box-shadow is above the main content */
 }
 
-aside.stuck { 
+aside.stuck {
   position: static;
   height: auto; /* flex element */
 }
@@ -819,30 +819,30 @@ dialog::backdrop {
 }
 
 dl {
-	display: grid;
-	grid-template-columns: max-content 1fr;
-	gap: 0;
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0;
 }
 
 dt:after {
-	content: ':';
+    content: ':';
 }
 
 dt {
-	font-weight: bold;
-	border-right: 1px solid var(--border-color);
-	text-align: right;
-	padding: 0.6em;
+    font-weight: bold;
+    border-right: 1px solid var(--border-color);
+    text-align: right;
+    padding: 0.6em;
 }
 
 dd {
-	margin-left: 0;
-	padding: 0.6em;
-	word-break: break-word;
+    margin-left: 0;
+    padding: 0.6em;
+    word-break: break-word;
 }
 
 a svg, button svg, h2 svg {
-	vertical-align: bottom;
+    vertical-align: bottom;
 }
 
 @media (max-width: 600px) {
@@ -868,18 +868,18 @@ a svg, button svg, h2 svg {
   }
 
   section {
-	margin: 0;
-	margin-top: 1em;
-	border-radius: 0;
-	padding: .75em;
+    margin: 0;
+    margin-top: 1em;
+    border-radius: 0;
+    padding: .75em;
   }
 
   .hide-small {
-	display: none;
+    display: none;
   }
 
   form {
-	grid-template-columns: 1fr;
+    grid-template-columns: 1fr;
   }
 
   fieldset {
@@ -888,23 +888,23 @@ a svg, button svg, h2 svg {
 
   aside.stuck {
     position: absolute;
-	width: 100%;
+    width: 100%;
   }
 
   dl {
     display: grid;
-	grid-template-columns: 1fr;
+    grid-template-columns: 1fr;
   }
 
   dt {
-	text-align: left;
-	padding: 0;
-	border-right: none;
+    text-align: left;
+    padding: 0;
+    border-right: none;
   }
 
   dd {
-	padding-left: 0;
-	margin-bottom: .8em;
+    padding-left: 0;
+    margin-bottom: .8em;
   }
 }
 }
