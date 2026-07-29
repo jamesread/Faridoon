@@ -1,0 +1,69 @@
+---
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+version: 2
+
+builds:
+  - id: faridoon
+    dir: service
+    main: main.go
+    binary: faridoon-service
+    env: [CGO_ENABLED=0]
+    goos: [linux]
+    goarch: [amd64, arm64]
+    ldflags:
+      - >
+        -s -w
+        -X faridoon/service/buildinfo.Version={{.Version}}
+
+archives: []
+
+dockers:
+  - dockerfile: Dockerfile
+    goarch: amd64
+    use: buildx
+    image_templates:
+      - ghcr.io/jamesread/faridoon:{{.Version}}-amd64
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    extra_files:
+      - frontend/dist
+      - database
+      - docker-entrypoint.sh
+      - service/config.yaml
+
+  - dockerfile: Dockerfile
+    goarch: arm64
+    use: buildx
+    image_templates:
+      - ghcr.io/jamesread/faridoon:{{.Version}}-arm64
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+    extra_files:
+      - frontend/dist
+      - database
+      - docker-entrypoint.sh
+      - service/config.yaml
+
+docker_manifests:
+  - name_template: ghcr.io/jamesread/faridoon:{{.Version}}
+    image_templates:
+      - ghcr.io/jamesread/faridoon:{{.Version}}-amd64
+      - ghcr.io/jamesread/faridoon:{{.Version}}-arm64
+
+  - name_template: ghcr.io/jamesread/faridoon:latest
+    image_templates:
+      - ghcr.io/jamesread/faridoon:{{.Version}}-amd64
+      - ghcr.io/jamesread/faridoon:{{.Version}}-arm64
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"

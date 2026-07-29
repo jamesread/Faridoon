@@ -14,12 +14,17 @@ jobs:
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
         with:
-          image: tonistiigi/binfmt:latest
-          platforms: arm64
+          cache-image: true
+          platforms: arm64,amd64
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version-file: 'service/go.mod'
+          cache: true
+          cache-dependency-path: service/go.sum
 
       - uses: actions/setup-node@v4
         with:
@@ -34,11 +39,16 @@ jobs:
         run: make generate && make -wC service build && make -wC frontend build
 
       - name: Login to ghcr
-        uses: docker/login-action@v3.1.0
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.CONTAINER_TOKEN }}
+
+      - name: Install goreleaser
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          install-only: true
 
       - name: release
         if: github.ref_type != 'tag'
@@ -46,9 +56,8 @@ jobs:
         with:
           extra_plugins: |
             @semantic-release/commit-analyzer
-            @semantic-release/git
             @semantic-release/exec
-            @semantic-release/github
+            @semantic-release/git
           semantic_version: 24.2.3
         env:
           GH_TOKEN: ${{ secrets.CONTAINER_TOKEN }}

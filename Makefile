@@ -46,10 +46,12 @@ clean:
 RELEASE_VERSION ?= development
 
 docker-amd64:
+	cp -f service/faridoon-service ./faridoon-service
 	docker buildx build --platform linux/amd64 -t ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-amd64 -f Dockerfile --output type=docker --load .
 	docker push ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-amd64
 
 docker-arm64:
+	cp -f service/faridoon-service ./faridoon-service
 	docker buildx build --platform linux/arm64 -t ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-arm64 -f Dockerfile --output type=docker --load .
 	docker push ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-arm64
 

@@ -1,9 +1,11 @@
-# Build: make generate && make frontend && make service
-# Then: docker build -t faridoon .
+# Built by goreleaser (binary at context root) or:
+#   make generate && make frontend && make service
+#   cp service/faridoon-service ./faridoon-service && docker build -t faridoon .
 FROM alpine:3.20
+LABEL org.opencontainers.image.source=https://github.com/jamesread/Faridoon
 RUN apk add --no-cache ca-certificates sql-migrate
 EXPOSE 8080
-COPY service/faridoon-service /usr/bin/faridoon-service
+COPY faridoon-service /usr/bin/faridoon-service
 COPY service/config.yaml /config/config.yaml
 COPY frontend/dist /app/frontend
 COPY database /var/faridoon/database
