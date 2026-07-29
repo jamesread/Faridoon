@@ -7,7 +7,7 @@ version: 2
 builds:
   - id: faridoon
     dir: service
-    main: main.go
+    main: .
     binary: faridoon-service
     env: [CGO_ENABLED=0]
     goos: [linux]

@@ -11,6 +11,7 @@ frontend/dist
 integration-tests/node_modules
 service/faridoon-service
 /faridoon-service
+/dist/
 service/gen
 frontend/gen
 Thumbs.db
