@@ -17,17 +17,22 @@ func (s *FaridoonServer) GetDiagnostics(ctx context.Context, _ *connect.Request[
 	out := &faridoonv1.GetDiagnosticsResponse{
 		Version: buildinfo.Version, SiteTitle: s.siteTitle(ctx), GoVersion: runtime.Version(),
 	}
+	s.fillDiagnosticsCounts(ctx, out)
+	return connect.NewResponse(out), nil
+}
+
+func (s *FaridoonServer) fillDiagnosticsCounts(ctx context.Context, out *faridoonv1.GetDiagnosticsResponse) {
 	if mig, err := s.store.LatestMigration(ctx); err == nil {
 		out.DatabaseMigration = mig
 	}
-	if n, err := s.store.UserCount(ctx); err == nil {
-		out.UserCount = int32(n)
+	out.UserCount = int32OrZero(s.store.UserCount(ctx))
+	out.PendingApprovals = int32OrZero(s.store.CountPending(ctx))
+	out.ApprovedQuotes = int32OrZero(s.store.CountApproved(ctx))
+}
+
+func int32OrZero(n int, err error) int32 {
+	if err != nil {
+		return 0
 	}
-	if n, err := s.store.CountPending(ctx); err == nil {
-		out.PendingApprovals = int32(n)
-	}
-	if n, err := s.store.CountApproved(ctx); err == nil {
-		out.ApprovedQuotes = int32(n)
-	}
-	return connect.NewResponse(out), nil
+	return int32(n)
 }

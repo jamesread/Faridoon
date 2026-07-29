@@ -83,7 +83,13 @@ onMounted(load)
         </label>
         <label v-else-if="cvar.mainType === 'int'">
           {{ labelFor(cvar.key) }}
-          <input v-model.number="edits[cvar.key].valueInt" type="number" required />
+          <input
+            v-model.number="edits[cvar.key].valueInt"
+            type="number"
+            required
+            :min="cvar.key === 'quotes_per_page' ? 1 : undefined"
+            :max="cvar.key === 'quotes_per_page' ? 127 : undefined"
+          />
         </label>
         <label v-else-if="cvar.mainType === 'bool'">
           <input v-model="edits[cvar.key].boolValue" type="checkbox" />

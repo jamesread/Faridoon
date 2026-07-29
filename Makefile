@@ -1,4 +1,4 @@
-.PHONY: all generate build test lint install setup service frontend integration-test docs clean release docker-amd64 docker-arm64 docker-manifest
+.PHONY: all generate build test lint codestyle service-codestyle install setup service frontend integration-test docs clean release docker-amd64 docker-arm64 docker-manifest
 
 all: build
 
@@ -17,9 +17,13 @@ test: generate
 	$(MAKE) -wC service test
 	$(MAKE) -wC frontend test
 
-lint:
-	$(MAKE) -wC service lint
+lint: codestyle
+
+codestyle: service-codestyle
 	$(MAKE) -wC frontend lint
+
+service-codestyle:
+	$(MAKE) -wC service codestyle
 
 install:
 	cd service && go mod download

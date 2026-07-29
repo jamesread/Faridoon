@@ -1,4 +1,6 @@
 ---
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v3.2.0
@@ -7,6 +9,13 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: detect-private-key
+      - id: mixed-line-ending
+        args: ['--fix', 'lf']
+      - id: check-json
+      - id: check-case-conflict
+      - id: detect-aws-credentials
 
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.0.0
@@ -14,3 +23,12 @@ repos:
       - id: conventional-pre-commit
         stages: [commit-msg]
         args: []
+
+  - repo: local
+    hooks:
+      - id: service-codestyle
+        name: service-codestyle
+        entry: make service-codestyle
+        language: system
+        pass_filenames: false
+        files: ^(service/|protocol/|Makefile)

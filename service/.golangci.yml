@@ -80,6 +80,18 @@ linters:
         text: "G115:"
         linters:
           - gosec
+      - path: server_cvars\.go
+        text: "G115:"
+        linters:
+          - gosec
+      - path: server_diagnostics\.go
+        text: "G115:"
+        linters:
+          - gosec
+      - path: server_header_links\.go
+        text: "G115:"
+        linters:
+          - gosec
 
       # Operator-supplied config paths from cwd / env.
       - path: internal/config/config\.go

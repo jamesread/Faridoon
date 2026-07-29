@@ -42,6 +42,7 @@ Admins manage cvars at **Account → Settings** (`/admin/settings`). Missing def
 | Key | Type | Default | Effect |
 |-----|------|---------|--------|
 | `site_title` | string | from `siteTitle` / `SITE_TITLE` | Header / site title |
+| `quotes_per_page` | int | 5 | Quotes shown per page on listing (1–127) |
 | `enable_voting` | bool | off | Show vote controls; allow `VoteQuote` |
 | `enable_registration` | bool | on | Allow `/register` and `Register` |
 | `enable_guest_add` | bool | on | Allow logged-out users to submit quotes |

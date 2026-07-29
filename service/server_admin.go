@@ -164,22 +164,37 @@ func (s *FaridoonServer) UpdateUser(ctx context.Context, req *connect.Request[fa
 	if err != nil {
 		return nil, err
 	}
-	target, findErr := s.store.FindUser(ctx, int(req.Msg.Id))
-	if findErr != nil || target == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
-	}
-	if lockErr := s.denyIfLastAdminDemotion(ctx, target, int(req.Msg.GroupId)); lockErr != nil {
-		return nil, lockErr
-	}
-	if updErr := s.store.UpdateUserGroup(ctx, int(req.Msg.Id), int(req.Msg.GroupId)); updErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, updErr)
+	if applyErr := s.applyUserGroupUpdate(ctx, int(req.Msg.Id), int(req.Msg.GroupId)); applyErr != nil {
+		return nil, applyErr
 	}
 	s.audit(ctx, su, "user.update_group", "user", int(req.Msg.Id), detailf("group_id=%d", req.Msg.GroupId))
-	row, err := s.store.FindUser(ctx, int(req.Msg.Id))
+	row, loadErr := s.requireUser(ctx, int(req.Msg.Id))
+	if loadErr != nil {
+		return nil, loadErr
+	}
+	return connect.NewResponse(s.toProtoUserRow(ctx, row)), nil
+}
+
+func (s *FaridoonServer) applyUserGroupUpdate(ctx context.Context, userID, groupID int) error {
+	target, findErr := s.requireUser(ctx, userID)
+	if findErr != nil {
+		return findErr
+	}
+	if lockErr := s.denyIfLastAdminDemotion(ctx, target, groupID); lockErr != nil {
+		return lockErr
+	}
+	if updErr := s.store.UpdateUserGroup(ctx, userID, groupID); updErr != nil {
+		return connect.NewError(connect.CodeInternal, updErr)
+	}
+	return nil
+}
+
+func (s *FaridoonServer) requireUser(ctx context.Context, id int) (*store.UserRow, error) {
+	row, err := s.store.FindUser(ctx, id)
 	if err != nil || row == nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
 	}
-	return connect.NewResponse(s.toProtoUserRow(ctx, row)), nil
+	return row, nil
 }
 
 func (s *FaridoonServer) denyIfLastAdminDemotion(ctx context.Context, target *store.UserRow, newGroupID int) error {
@@ -216,27 +231,39 @@ func (s *FaridoonServer) DeleteUser(ctx context.Context, req *connect.Request[fa
 	if err != nil {
 		return nil, err
 	}
-	if su.ID == int(req.Msg.Id) {
-		return nil, connect.NewError(connect.CodePermissionDenied, fmt.Errorf("cannot delete your own account"))
-	}
-	target, findErr := s.store.FindUser(ctx, int(req.Msg.Id))
-	if findErr != nil || target == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
-	}
-	privs, privErr := s.store.UserPrivileges(ctx, target.ID, target.GroupID)
-	if privErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, privErr)
-	}
-	if slices.Contains(privs, "SUPERUSER") {
-		if lockErr := s.denyIfSoleAdmin(ctx); lockErr != nil {
-			return nil, lockErr
-		}
-	}
-	if delErr := s.store.DeleteUser(ctx, int(req.Msg.Id)); delErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, delErr)
+	if delErr := s.deleteUserByID(ctx, su, int(req.Msg.Id)); delErr != nil {
+		return nil, delErr
 	}
 	s.audit(ctx, su, "user.delete", "user", int(req.Msg.Id), "")
 	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (s *FaridoonServer) deleteUserByID(ctx context.Context, su *sessionUser, userID int) error {
+	if su.ID == userID {
+		return connect.NewError(connect.CodePermissionDenied, fmt.Errorf("cannot delete your own account"))
+	}
+	target, findErr := s.requireUser(ctx, userID)
+	if findErr != nil {
+		return findErr
+	}
+	if lockErr := s.denyIfDeletingAdmin(ctx, target); lockErr != nil {
+		return lockErr
+	}
+	if delErr := s.store.DeleteUser(ctx, userID); delErr != nil {
+		return connect.NewError(connect.CodeInternal, delErr)
+	}
+	return nil
+}
+
+func (s *FaridoonServer) denyIfDeletingAdmin(ctx context.Context, target *store.UserRow) error {
+	privs, privErr := s.store.UserPrivileges(ctx, target.ID, target.GroupID)
+	if privErr != nil {
+		return connect.NewError(connect.CodeInternal, privErr)
+	}
+	if !slices.Contains(privs, "SUPERUSER") {
+		return nil
+	}
+	return s.denyIfSoleAdmin(ctx)
 }
 
 func validateResetPassword(password, confirmation string) error {
@@ -257,19 +284,26 @@ func (s *FaridoonServer) ResetUserPassword(ctx context.Context, req *connect.Req
 	if valErr := validateResetPassword(req.Msg.Password, req.Msg.PasswordConfirmation); valErr != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, valErr)
 	}
-	row, findErr := s.store.FindUser(ctx, int(req.Msg.Id))
-	if findErr != nil || row == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("user not found"))
+	row, findErr := s.requireUser(ctx, int(req.Msg.Id))
+	if findErr != nil {
+		return nil, findErr
 	}
-	hash, hashErr := authpass.Hash(req.Msg.Password)
-	if hashErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, hashErr)
-	}
-	if updErr := s.store.UpdatePassword(ctx, row.ID, hash); updErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, updErr)
+	if setErr := s.setUserPassword(ctx, row.ID, req.Msg.Password); setErr != nil {
+		return nil, setErr
 	}
 	s.audit(ctx, su, "user.reset_password", "user", row.ID, row.Username)
 	return connect.NewResponse(&emptypb.Empty{}), nil
+}
+
+func (s *FaridoonServer) setUserPassword(ctx context.Context, userID int, password string) error {
+	hash, hashErr := authpass.Hash(password)
+	if hashErr != nil {
+		return connect.NewError(connect.CodeInternal, hashErr)
+	}
+	if updErr := s.store.UpdatePassword(ctx, userID, hash); updErr != nil {
+		return connect.NewError(connect.CodeInternal, updErr)
+	}
+	return nil
 }
 
 func (s *FaridoonServer) CreateGroup(ctx context.Context, req *connect.Request[faridoonv1.CreateGroupRequest]) (*connect.Response[faridoonv1.CreateGroupResponse], error) {
@@ -334,11 +368,11 @@ func (s *FaridoonServer) RevokePermission(ctx context.Context, req *connect.Requ
 }
 
 func (s *FaridoonServer) denyIfRevokeRemovesLastAdmin(ctx context.Context, groupID, permissionID int) error {
-	perm, err := s.store.FindPermission(ctx, permissionID)
+	isSuper, err := s.isSuperuserPermission(ctx, permissionID)
 	if err != nil {
-		return connect.NewError(connect.CodeInternal, err)
+		return err
 	}
-	if perm == nil || perm.Key != "SUPERUSER" {
+	if !isSuper {
 		return nil
 	}
 	remaining, countErr := s.store.CountUsersWithPrivilegeExcludingGroup(ctx, "SUPERUSER", groupID)
@@ -349,6 +383,14 @@ func (s *FaridoonServer) denyIfRevokeRemovesLastAdmin(ctx context.Context, group
 		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("cannot remove the last admin"))
 	}
 	return nil
+}
+
+func (s *FaridoonServer) isSuperuserPermission(ctx context.Context, permissionID int) (bool, error) {
+	perm, err := s.store.FindPermission(ctx, permissionID)
+	if err != nil {
+		return false, connect.NewError(connect.CodeInternal, err)
+	}
+	return perm != nil && perm.Key == "SUPERUSER", nil
 }
 
 func (s *FaridoonServer) ListWebhooks(ctx context.Context, _ *connect.Request[faridoonv1.ListWebhooksRequest]) (*connect.Response[faridoonv1.ListWebhooksResponse], error) {

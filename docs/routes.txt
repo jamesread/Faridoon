@@ -36,7 +36,7 @@ BYPASS_APPROVAL — new quotes skip approval queue
 
 Unapproved quotes are only readable by approvers or the submitting user.
 Voting is limited to existing approved quotes when `enable_voting` is on.
-Feature toggles (voting, registration, guest add, syntax highlighting, site title) are cvars under /admin/settings.
+Feature toggles and listing size (`quotes_per_page`, voting, registration, guest add, syntax highlighting, site title) are cvars under /admin/settings.
 The last SUPERUSER cannot be demoted, deleted, or have SUPERUSER revoked from their only granting group.
 
 ## Metrics

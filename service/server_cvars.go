@@ -69,6 +69,17 @@ func (s *FaridoonServer) syntaxHighlightingEnabled(ctx context.Context) bool {
 	return s.boolCvar(ctx, cvar.KeyEnableSyntaxHighlighting, false)
 }
 
+func (s *FaridoonServer) quotesPerPage(ctx context.Context) int {
+	row, err := s.store.FindCvar(ctx, cvar.KeyQuotesPerPage)
+	if err != nil || row == nil || row.ValueInt < 1 {
+		return cvar.DefaultQuotesPerPage
+	}
+	if row.ValueInt > cvar.MaxQuotesPerPage {
+		return cvar.MaxQuotesPerPage
+	}
+	return row.ValueInt
+}
+
 func (s *FaridoonServer) ListCvars(ctx context.Context, _ *connect.Request[faridoonv1.ListCvarsRequest]) (*connect.Response[faridoonv1.ListCvarsResponse], error) {
 	if _, err := s.requireAdmin(ctx); err != nil {
 		return nil, err
@@ -85,23 +96,39 @@ func (s *FaridoonServer) ListCvars(ctx context.Context, _ *connect.Request[farid
 func validateCvarUpdate(row *store.CvarRow, valueInt int32, valueString string) (int, string, error) {
 	switch row.MainType {
 	case cvar.TypeString:
-		if valueString == "" {
-			return 0, "", fmt.Errorf("value required")
-		}
-		if len(valueString) > 255 {
-			return 0, "", fmt.Errorf("value too long")
-		}
-		return 0, valueString, nil
+		return validateStringCvar(valueString)
 	case cvar.TypeInt:
-		return int(valueInt), "", nil
+		return validateIntCvar(row.Key, valueInt)
 	case cvar.TypeBool:
-		if valueInt != 0 {
-			return 1, "", nil
-		}
-		return 0, "", nil
+		return validateBoolCvar(valueInt), "", nil
 	default:
 		return 0, "", fmt.Errorf("unsupported cvar type")
 	}
+}
+
+func validateStringCvar(valueString string) (int, string, error) {
+	if valueString == "" {
+		return 0, "", fmt.Errorf("value required")
+	}
+	if len(valueString) > 255 {
+		return 0, "", fmt.Errorf("value too long")
+	}
+	return 0, valueString, nil
+}
+
+func validateIntCvar(key string, valueInt int32) (int, string, error) {
+	v := int(valueInt)
+	if key == cvar.KeyQuotesPerPage && (v < 1 || v > cvar.MaxQuotesPerPage) {
+		return 0, "", fmt.Errorf("quotes_per_page must be between 1 and %d", cvar.MaxQuotesPerPage)
+	}
+	return v, "", nil
+}
+
+func validateBoolCvar(valueInt int32) int {
+	if valueInt != 0 {
+		return 1
+	}
+	return 0
 }
 
 func (s *FaridoonServer) UpdateCvar(ctx context.Context, req *connect.Request[faridoonv1.UpdateCvarRequest]) (*connect.Response[faridoonv1.Cvar], error) {
@@ -109,9 +136,9 @@ func (s *FaridoonServer) UpdateCvar(ctx context.Context, req *connect.Request[fa
 	if err != nil {
 		return nil, err
 	}
-	row, findErr := s.store.FindCvar(ctx, req.Msg.Key)
-	if findErr != nil || row == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("cvar not found"))
+	row, findErr := s.requireCvar(ctx, req.Msg.Key)
+	if findErr != nil {
+		return nil, findErr
 	}
 	valueInt, valueString, valErr := validateCvarUpdate(row, req.Msg.ValueInt, req.Msg.ValueString)
 	if valErr != nil {
@@ -123,4 +150,12 @@ func (s *FaridoonServer) UpdateCvar(ctx context.Context, req *connect.Request[fa
 	s.audit(ctx, su, "cvar.update", "cvar", 0, row.Key)
 	updated, _ := s.store.FindCvar(ctx, row.Key)
 	return connect.NewResponse(toProtoCvar(updated)), nil
+}
+
+func (s *FaridoonServer) requireCvar(ctx context.Context, key string) (*store.CvarRow, error) {
+	row, err := s.store.FindCvar(ctx, key)
+	if err != nil || row == nil {
+		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("cvar not found"))
+	}
+	return row, nil
 }

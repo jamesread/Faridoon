@@ -27,12 +27,15 @@ func TestNormalizeURL(t *testing.T) {
 		{"  ", true},
 	}
 	for _, tc := range cases {
-		_, err := NormalizeURL(tc.in)
-		if tc.wantErr && err == nil {
-			t.Fatalf("%q: expected error", tc.in)
-		}
-		if !tc.wantErr && err != nil {
-			t.Fatalf("%q: unexpected error %v", tc.in, err)
-		}
+		assertNormalizeURL(t, tc.in, tc.wantErr)
+	}
+}
+
+func assertNormalizeURL(t *testing.T, in string, wantErr bool) {
+	t.Helper()
+	_, err := NormalizeURL(in)
+	gotErr := err != nil
+	if gotErr != wantErr {
+		t.Fatalf("%q: wantErr=%v err=%v", in, wantErr, err)
 	}
 }

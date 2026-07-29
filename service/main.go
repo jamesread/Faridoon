@@ -17,8 +17,6 @@ import (
 	"github.com/jamesread/httpauthshim/sessions"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
-	"golang.org/x/net/http2"
-	"golang.org/x/net/http2/h2c"
 
 	"faridoon/service/buildinfo"
 	"faridoon/service/gen/faridoon/v1/faridoonv1connect"
@@ -54,12 +52,13 @@ func run() error {
 	}
 	defer func() { _ = db.Close() }()
 
+	return runWithDB(cfg, db)
+}
+
+func runWithDB(cfg *config.Config, db *sql.DB) error {
 	st := store.NewMySQL(db)
-	if migErr := assertMigration(context.Background(), st, cfg.RequiredMigration); migErr != nil {
-		return migErr
-	}
-	if cvarErr := ensureDefaultCvars(context.Background(), st, cfg.SiteTitle); cvarErr != nil {
-		return fmt.Errorf("cvars: %w", cvarErr)
+	if err := prepareStore(context.Background(), st, cfg); err != nil {
+		return err
 	}
 
 	authCtx, err := setupAuth(cfg)
@@ -71,11 +70,19 @@ func run() error {
 	}
 
 	srv := newFaridoonServer(cfg, st, authCtx)
-	mux := buildMux(srv)
-
 	addr := config.ListenAddr(cfg)
 	logrus.Infof("Starting Faridoon %s on %s", buildinfo.Version, addr)
-	return serveHTTP(addr, mux)
+	return serveHTTP(addr, buildMux(srv))
+}
+
+func prepareStore(ctx context.Context, st store.Store, cfg *config.Config) error {
+	if err := assertMigration(ctx, st, cfg.RequiredMigration); err != nil {
+		return err
+	}
+	if err := ensureDefaultCvars(ctx, st, cfg.SiteTitle); err != nil {
+		return fmt.Errorf("cvars: %w", err)
+	}
+	return nil
 }
 
 func logConfigLoaded() {
@@ -108,9 +115,13 @@ func buildMux(srv *FaridoonServer) *http.ServeMux {
 }
 
 func serveHTTP(addr string, handler http.Handler) error {
+	protocols := new(http.Protocols)
+	protocols.SetHTTP1(true)
+	protocols.SetUnencryptedHTTP2(true)
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           h2c.NewHandler(handler, &http2.Server{}),
+		Handler:           handler,
+		Protocols:         protocols,
 		ReadHeaderTimeout: 10 * time.Second,
 		ReadTimeout:       30 * time.Second,
 		WriteTimeout:      60 * time.Second,

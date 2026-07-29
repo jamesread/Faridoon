@@ -14,7 +14,6 @@ require (
 	github.com/prometheus/client_golang v1.24.1
 	github.com/sirupsen/logrus v1.9.4
 	golang.org/x/crypto v0.54.0
-	golang.org/x/net v0.57.0
 	google.golang.org/protobuf v1.36.11
 )
 
@@ -34,5 +33,4 @@ require (
 	github.com/prometheus/procfs v0.21.1 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/sys v0.47.0 // indirect
-	golang.org/x/text v0.40.0 // indirect
 )
