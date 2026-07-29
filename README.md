@@ -12,9 +12,9 @@ Documentation for how to install and use Faridoon is available at https://jamesr
 
 </div>
 
-## Screenshots 
+## Screenshots
 
-Note the screenshots below contain quotes from the site that inspired this self hosted project - bash.org - which is now offline. There are several mirrors available via search engines. These quotes were used because they've been shared wildly for over 2 decades, and they're pretty funny :-) 
+Note the screenshots below contain quotes from the site that inspired this self hosted project - bash.org - which is now offline. There are several mirrors available via search engines. These quotes were used because they've been shared wildly for over 2 decades, and they're pretty funny :-)
 
 ![Faridoon Mobile Phone Screenshot](var/mockupLaptop.png)
 
@@ -22,7 +22,14 @@ Note the screenshots below contain quotes from the site that inspired this self 
 
 ## Getting Started
 
-Documentation is available at: https://jamesread.github.io/Faridoon/ , the recommended installation method is via **Docker**, connected to a **MySQL Database**. Faridoon runs just fine with low system resources - 1 vCPU and a 1 GB of RAM is plenty. 
+Documentation is available at: https://jamesread.github.io/Faridoon/ , the recommended installation method is via **Docker**, connected to a **MySQL Database**. Faridoon runs just fine with low system resources - 1 vCPU and a 1 GB of RAM is plenty.
+
+## Stack
+
+* Go service with ConnectRPC
+* Vue 3 + Vue Router + [picocrank](https://www.npmjs.com/package/picocrank) UI components
+* MySQL schema managed with **sql-migrate**
+* Authentication via [httpauthshim](https://github.com/jamesread/httpauthshim) (sessions; users stored in MySQL)
 
 ## Features
 
@@ -30,7 +37,8 @@ Documentation is available at: https://jamesread.github.io/Faridoon/ , the recom
 * Semi-intelligent removal of line breaks and weird characters.
 * User login and registration, with support for admins and non-admins.
 * Approval system for guest and non-admin submissions.
-* Easy configuration via environment variables, or configuration file.
+* Admin webhooks UI (`approval.requested`).
+* Easy configuration via YAML (`/config/config.yaml`) and environment variables.
 
 ## **Faridoon is a No-Nonsense Open Source project;**
 

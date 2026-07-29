@@ -1,0 +1,32 @@
+# Faridoon HTTP / Connect routes
+
+SPA (Vue Router) is served for browser paths. API is ConnectRPC under
+`/faridoon.v1.FaridoonService/*`.
+
+## Connect RPCs (FaridoonService)
+
+Init, GetCurrentUser, Login, Logout, Register
+ListQuotes, GetQuote, CreateQuote, UpdateQuote, DeleteQuote, VoteQuote
+ListApprovals, ApproveQuote
+ListUsers, GetUser, UpdateUser, DeleteUser
+CreateGroup, DeleteGroup, GrantPermission, RevokePermission
+ListWebhooks, CreateWebhook, UpdateWebhook, DeleteWebhook
+ListLogs
+
+## SPA paths
+
+/ /quotes /quotes/create /quotes/:id /quotes/:id/edit
+/login /register /account /approvals
+/admin/users /admin/users/:id/edit
+/admin/webhooks /admin/webhooks/create
+/admin/logs
+
+## Privileges
+
+SUPERUSER — admin gate
+APPROVE_QUOTES — approvals queue; quote edit
+BYPASS_APPROVAL — new quotes skip approval queue
+
+## Metrics
+
+GET /metrics — Prometheus

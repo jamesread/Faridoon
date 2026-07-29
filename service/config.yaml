@@ -1,0 +1,22 @@
+# Sample config for /config/config.yaml
+configVersion: 1
+listen: ":8080"
+siteTitle: Faridoon
+requiredMigration: 6.audit-logs.sql
+
+database:
+  host: mysql
+  port: 3306
+  name: faridoon
+  user: user
+  password: password
+
+features:
+  disableRegistration: false
+  guestsDisableAdd: false
+  enableSyntaxHighlighting: false
+  enableVoting: true
+
+auth:
+  localSessionCookieName: faridoon-sid
+  baseDir: /tmp/faridoon-auth

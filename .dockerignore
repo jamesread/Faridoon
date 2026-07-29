@@ -1,1 +1,11 @@
-src/includes/settings.php
+.git
+.github
+.cursor
+site
+var
+docs
+node_modules
+frontend/node_modules
+integration-tests
+*.md
+!README.md

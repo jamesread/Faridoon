@@ -1,23 +1,21 @@
----
-name: PHP CodeStyle
+name: Build and Test
 
 on:
   workflow_dispatch:
-
   push:
     branches: ["main"]
     paths:
-      - "src/**"
-      - "/*.xml"
-      - "composer.json"
-
+      - "service/**"
+      - "frontend/**"
+      - "protocol/**"
+      - "Makefile"
   pull_request:
     branches: ["main"]
     paths:
-      - "src/**"
-      - "/*.xml"
-      - "composer.json"
-
+      - "service/**"
+      - "frontend/**"
+      - "protocol/**"
+      - "Makefile"
 
 permissions:
   contents: read
@@ -25,39 +23,26 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v6
 
-      - name: Setup PHP Action
-        uses: shivammathur/setup-php@2.37.1
+      - uses: actions/setup-go@v5
         with:
-          php-version: '8.4'
+          go-version: '1.25'
 
-      - name: Validate composer.json and composer.lock
-        run: composer validate --strict
-
-      - name: Cache Composer packages
-        id: composer-cache
-        uses: actions/cache@v5.0.5
+      - uses: actions/setup-node@v4
         with:
-          path: vendor
-          key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-php-
+          node-version: '22'
 
-      - name: Install dependencies
-        run: composer install --prefer-dist --no-progress
-
-      - name: add bin to $PATH
+      - name: Install buf
         run: |
-          echo "$GITHUB_WORKSPACE/src/private/libraries/bin/" >> $GITHUB_PATH
+          BIN="/usr/local/bin/buf"
+          curl -sSL "https://github.com/bufbuild/buf/releases/download/v1.50.0/buf-Linux-x86_64" -o "$BIN"
+          chmod +x "$BIN"
 
-      - name: Run phpcs
-        run: make phpcs
-
-      - name: Run phpstan
-        run: make phpstan
-
-      - name: Run phpunit
-        run: make phpunit
+      - name: Generate and test
+        run: |
+          make generate
+          make -wC service test
+          make -wC service build
+          make -wC frontend build

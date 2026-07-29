@@ -1,17 +1,29 @@
 # Configuration
 
-## Database Settings
+Faridoon reads `/config/config.yaml` (or `FARIDOON_CONFIG_FILE`). Environment variables override database settings for Docker Compose compatibility.
 
-- `DB_HOST`: Database host
-- `DB_USER`: Database user
-- `DB_PASS`: Database password
-- `DB_NAME`: Database name
+## Database
 
-## Feature Flags
+- `database.host` / `DB_HOST`
+- `database.user` / `DB_USER` or `DB_USERNAME`
+- `database.password` / `DB_PASS` or `DB_PASSWORD`
+- `database.name` / `DB_NAME` or `DB_DATABASE`
 
-- `ENABLE_VOTING`: Enable voting feature, set to "1" to enable voting. (default: 0).
-- `ENABLE_SYNTAX_HIGHLIGHTING`: Enable the ability to set a code style for syntax highlighting (admin only).
+sql-migrate (on container start) expects `DB_HOST`, `DB_USER`, `DB_PASS`, and `DB_NAME`. The entrypoint maps Laravel-style names to these when needed.
 
-## Guest settings
+## Application
 
-- `GUESTS_DISABLE_ADD`: Set to "true" to disable guests from adding new quotes (default: unset - guests can submit quotes).
+- `siteTitle` / `SITE_TITLE`: Header title
+- `requiredMigration` / `REQUIRED_MIGRATION`: Expected sql-migrate id (default `6.audit-logs.sql`)
+- `listen`: HTTP listen address (default `:8080`)
+
+## Feature flags (`features`)
+
+- `enableVoting` (default true)
+- `enableSyntaxHighlighting` (default false)
+- `disableRegistration` (default false)
+- `guestsDisableAdd` (default false)
+
+## Auth (`auth`)
+
+httpauthshim session settings (cookie name, session file directory). User accounts and passwords live in the MySQL `users` table. Legacy sha1/bcrypt hashes are accepted and upgraded to argon2id on login.

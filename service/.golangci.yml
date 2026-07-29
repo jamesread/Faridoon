@@ -1,0 +1,88 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    - bidichk
+    - bodyclose
+    - copyloopvar
+    - durationcheck
+    - errcheck
+    - errorlint
+    - gocritic
+    - gocyclo
+    - gosec
+    - govet
+    - ineffassign
+    - misspell
+#    - modernize
+    - nilerr
+    - noctx
+#    - promlinter
+    - staticcheck
+#    - testifylint
+    - thelper
+    - unconvert
+#    - unparam
+    - unused
+    - usestdlibvars
+  settings:
+    gocyclo:
+      min-complexity: 5
+    gosec:
+      # Full gosec rule set (G101–G6xx), including Slowloris checks G112/G114.
+      enable-all-rules: true
+    govet:
+      enable-all: true
+  exclusions:
+    paths:
+      - gen
+    rules:
+      # Noise / fixtures in tests.
+      - path: _test\.go
+        linters:
+          - gosec
+      - path: _test\.go
+        text: "fieldalignment:"
+        linters:
+          - govet
+
+      # Legacy SHA-1 password hashes must still verify for on-login rehash.
+      - path: internal/authpass/
+        text: "G505:"
+        linters:
+          - gosec
+      - path: internal/authpass/
+        text: "G401:"
+        linters:
+          - gosec
+
+      # Secure is set for TLS termination / reverse proxies; gosec wants a literal true.
+      - path: server_auth_quotes\.go
+        text: "G124:"
+        linters:
+          - gosec
+
+      # Protobuf fields are int32; DB identifiers are int.
+      - path: server\.go
+        text: "G115:"
+        linters:
+          - gosec
+      - path: server_admin\.go
+        text: "G115:"
+        linters:
+          - gosec
+      - path: server_auth_quotes\.go
+        text: "G115:"
+        linters:
+          - gosec
+
+      # Operator-supplied config paths from cwd / env.
+      - path: internal/config/config\.go
+        text: "G703:"
+        linters:
+          - gosec

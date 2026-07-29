@@ -1,8 +1,7 @@
 ---
 name: Feature request
-description: Suggest an idea for something new
+about: Suggest an idea for something new
 title: 'Give your feature request a title'
-labels: ["type: feature-request", "waiting-on-developer"]
 labels:
   - "type: feature-request"
   - "waiting-on-developer"

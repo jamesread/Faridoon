@@ -1,0 +1,18 @@
+configVersion: 1
+listen: ":8080"
+siteTitle: Faridoon Test
+requiredMigration: 6.audit-logs.sql
+
+database:
+  host: 127.0.0.1
+  port: 3306
+  name: faridoon
+  user: user
+  password: password
+
+features:
+  enableVoting: true
+
+auth:
+  localSessionCookieName: faridoon-sid
+  baseDir: /tmp/faridoon-auth-test

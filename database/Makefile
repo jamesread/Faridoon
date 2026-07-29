@@ -1,0 +1,2 @@
+default:
+	sql-migrate up

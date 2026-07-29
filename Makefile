@@ -1,35 +1,49 @@
-RELEASE_VERSION ?= development
+.PHONY: all generate build test lint install setup service frontend integration-test docs clean release docker-amd64 docker-arm64 docker-manifest
 
-stylesheets:
-	npm install
-	cp node_modules/femtocrank/style.css src/resources/stylesheets/style.css
-	cp node_modules/femtocrank/dark.css src/resources/stylesheets/dark.css
+all: build
 
-lint: phpcs phpcbf phpstan
+generate:
+	cd protocol/proto && buf generate --template ../buf.gen.yaml
 
-phpcs:
-	vendor/bin/phpcs src/
+build: generate service frontend
 
-phpcbf:
-	vendor/bin/phpcbf src/
+service:
+	$(MAKE) -wC service build
 
-phpstan:
-	vendor/bin/phpstan analyse src/
+frontend:
+	$(MAKE) -wC frontend build
 
-phpunit:
-	vendor/bin/phpunit tests/*
+test: generate
+	$(MAKE) -wC service test
+	$(MAKE) -wC frontend test
+
+lint:
+	$(MAKE) -wC service lint
+	$(MAKE) -wC frontend lint
+
+install:
+	cd service && go mod download
+	cd frontend && npm install
+
+setup: install generate
+	@echo "Setup complete. Run 'make dev-service' and 'make dev-frontend'."
+
+dev-service:
+	$(MAKE) -wC service run
+
+dev-frontend:
+	$(MAKE) -wC frontend run
+
+integration-test: service
+	cd integration-tests && npm install && node run-tests.js
+
+docs:
+	mkdocs build
 
 clean:
-	rm -rf build
+	rm -rf service/faridoon-service frontend/dist frontend/gen service/gen
 
-container-image:
-	docker kill faridoon || true
-	docker rm faridoon && docker rmi faridoon || true
-	docker build -t faridoon:latest .
-
-container: container-image
-	docker create --name faridoon -p 8080:8080 --env-file=.env.dev faridoon:latest
-	docker start faridoon
+RELEASE_VERSION ?= development
 
 docker-amd64:
 	docker buildx build --platform linux/amd64 -t ghcr.io/jamesread/faridoon:${RELEASE_VERSION}-amd64 -f Dockerfile --output type=docker --load .
@@ -62,5 +76,3 @@ docker-manifest-release-version:
 docker-manifest: docker-manifest-latest docker-manifest-release-version
 
 release: docker-amd64 docker-arm64 docker-manifest
-
-.PHONY: dist clean docker-container-image container stylesheets

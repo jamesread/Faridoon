@@ -1,9 +1,0 @@
-parameters:
-	level: 5
-	paths:
-		- src/
-
-	ignoreErrors:
-		- '#might not be defined#'
-		- '#Path in require_once#'
-		- '#Path in include_once#'

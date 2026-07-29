@@ -1,0 +1,9 @@
+version: v2
+name: buf.build/jamesread/faridoon
+deps: []
+lint:
+  use:
+    - DEFAULT
+breaking:
+  use:
+    - FILE

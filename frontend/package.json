@@ -1,0 +1,27 @@
+{
+  "name": "faridoon-frontend",
+  "version": "2.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "lint": "eslint . --max-warnings 9999"
+  },
+  "dependencies": {
+    "@connectrpc/connect": "^2.1.1",
+    "@connectrpc/connect-web": "^2.1.1",
+    "@hugeicons/core-free-icons": "^1.2.1",
+    "@hugeicons/vue": "^1.0.5",
+    "picocrank": "^1.14.1",
+    "vue": "^3.5.33",
+    "vue-router": "^5.0.6"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.6",
+    "jsdom": "^29.0.2",
+    "vite": "^8.0.10",
+    "vitest": "^4.1.5"
+  }
+}

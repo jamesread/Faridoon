@@ -1,0 +1,301 @@
+syntax = "proto3";
+
+package faridoon.v1;
+
+import "google/protobuf/empty.proto";
+
+option go_package = "faridoon/service/gen/faridoon/v1;faridoonv1";
+
+message Features {
+  bool voting_enabled = 1;
+  bool registration_enabled = 2;
+  bool guest_add_enabled = 3;
+  bool syntax_highlighting_enabled = 4;
+}
+
+message User {
+  int32 id = 1;
+  string username = 2;
+  int32 group_id = 3;
+  string group_title = 4;
+  bool is_admin = 5;
+  bool can_approve_quotes = 6;
+  bool can_bypass_approval = 7;
+  repeated string privileges = 8;
+}
+
+message QuoteLine {
+  string content = 1;
+  string username = 2;
+  int32 username_color = 3;
+}
+
+message Quote {
+  int32 id = 1;
+  string content = 2;
+  string created = 3;
+  int32 vote_count = 4;
+  bool approved = 5;
+  string syntax_highlighting = 6;
+  repeated QuoteLine lines = 7;
+}
+
+message InitRequest {}
+
+message InitResponse {
+  string version = 1;
+  string site_title = 2;
+  Features features = 3;
+  User user = 4;
+  int32 pending_approvals = 5;
+  repeated string webhook_events = 6;
+}
+
+message GetCurrentUserRequest {}
+
+message GetCurrentUserResponse {
+  User user = 1;
+}
+
+message LoginRequest {
+  string username = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  User user = 1;
+}
+
+message LogoutRequest {}
+
+message RegisterRequest {
+  string username = 1;
+  string password = 2;
+  string password_confirmation = 3;
+}
+
+message RegisterResponse {
+  User user = 1;
+}
+
+message ListQuotesRequest {
+  string order = 1; // latest | random | rank
+  int32 page = 2;
+}
+
+message ListQuotesResponse {
+  repeated Quote quotes = 1;
+  int32 page = 2;
+  int32 total_pages = 3;
+  int32 total = 4;
+}
+
+message GetQuoteRequest {
+  int32 id = 1;
+}
+
+message GetQuoteResponse {
+  Quote quote = 1;
+}
+
+message CreateQuoteRequest {
+  string content = 1;
+  string syntax_highlighting = 2;
+}
+
+message CreateQuoteResponse {
+  Quote quote = 1;
+  bool pending_approval = 2;
+}
+
+message UpdateQuoteRequest {
+  int32 id = 1;
+  string content = 2;
+  string syntax_highlighting = 3;
+}
+
+message DeleteQuoteRequest {
+  int32 id = 1;
+}
+
+message VoteQuoteRequest {
+  int32 id = 1;
+  int32 delta = 2; // 1 or -1
+}
+
+message VoteQuoteResponse {
+  int32 vote_count = 1;
+}
+
+message ListApprovalsRequest {}
+
+message ListApprovalsResponse {
+  repeated Quote quotes = 1;
+}
+
+message ApproveQuoteRequest {
+  int32 id = 1;
+}
+
+message GroupPermission {
+  int32 permission_id = 1;
+  string key = 2;
+  string description = 3;
+}
+
+message Group {
+  int32 id = 1;
+  string title = 2;
+  repeated GroupPermission permissions = 3;
+}
+
+message Permission {
+  int32 id = 1;
+  string key = 2;
+  string description = 3;
+}
+
+message ListUsersRequest {}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  repeated Group groups = 2;
+  repeated Permission permissions = 3;
+}
+
+message GetUserRequest {
+  int32 id = 1;
+}
+
+message GetUserResponse {
+  User user = 1;
+  repeated Group groups = 2;
+}
+
+message UpdateUserRequest {
+  int32 id = 1;
+  int32 group_id = 2;
+}
+
+message DeleteUserRequest {
+  int32 id = 1;
+}
+
+message CreateGroupRequest {
+  string title = 1;
+}
+
+message CreateGroupResponse {
+  Group group = 1;
+}
+
+message DeleteGroupRequest {
+  int32 id = 1;
+}
+
+message GrantPermissionRequest {
+  int32 group_id = 1;
+  int32 permission_id = 2;
+}
+
+message RevokePermissionRequest {
+  int32 group_id = 1;
+  int32 permission_id = 2;
+}
+
+message Webhook {
+  int32 id = 1;
+  string url = 2;
+  string event = 3;
+  bool enabled = 4;
+  string created = 5;
+  string updated = 6;
+}
+
+message ListWebhooksRequest {}
+
+message ListWebhooksResponse {
+  repeated Webhook webhooks = 1;
+  repeated string events = 2;
+}
+
+message CreateWebhookRequest {
+  string url = 1;
+  string secret = 2;
+  string event = 3;
+  bool enabled = 4;
+}
+
+message CreateWebhookResponse {
+  Webhook webhook = 1;
+}
+
+message UpdateWebhookRequest {
+  int32 id = 1;
+  string url = 2;
+  string secret = 3; // empty keeps existing
+  string event = 4;
+  bool enabled = 5;
+}
+
+message DeleteWebhookRequest {
+  int32 id = 1;
+}
+
+message AuditLog {
+  int32 id = 1;
+  string created = 2;
+  int32 actor_user_id = 3;
+  string actor_username = 4;
+  string action = 5;
+  string entity_type = 6;
+  int32 entity_id = 7;
+  string detail = 8;
+  string ip = 9;
+}
+
+message ListLogsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message ListLogsResponse {
+  repeated AuditLog logs = 1;
+  int32 page = 2;
+  int32 total_pages = 3;
+  int32 total = 4;
+}
+
+service FaridoonService {
+  rpc Init(InitRequest) returns (InitResponse);
+  rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc Logout(LogoutRequest) returns (google.protobuf.Empty);
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+
+  rpc ListQuotes(ListQuotesRequest) returns (ListQuotesResponse);
+  rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse);
+  rpc CreateQuote(CreateQuoteRequest) returns (CreateQuoteResponse);
+  rpc UpdateQuote(UpdateQuoteRequest) returns (Quote);
+  rpc DeleteQuote(DeleteQuoteRequest) returns (google.protobuf.Empty);
+  rpc VoteQuote(VoteQuoteRequest) returns (VoteQuoteResponse);
+
+  rpc ListApprovals(ListApprovalsRequest) returns (ListApprovalsResponse);
+  rpc ApproveQuote(ApproveQuoteRequest) returns (google.protobuf.Empty);
+
+  rpc ListUsers(ListUsersRequest) returns (ListUsersResponse);
+  rpc GetUser(GetUserRequest) returns (GetUserResponse);
+  rpc UpdateUser(UpdateUserRequest) returns (User);
+  rpc DeleteUser(DeleteUserRequest) returns (google.protobuf.Empty);
+  rpc CreateGroup(CreateGroupRequest) returns (CreateGroupResponse);
+  rpc DeleteGroup(DeleteGroupRequest) returns (google.protobuf.Empty);
+  rpc GrantPermission(GrantPermissionRequest) returns (google.protobuf.Empty);
+  rpc RevokePermission(RevokePermissionRequest) returns (google.protobuf.Empty);
+
+  rpc ListWebhooks(ListWebhooksRequest) returns (ListWebhooksResponse);
+  rpc CreateWebhook(CreateWebhookRequest) returns (CreateWebhookResponse);
+  rpc UpdateWebhook(UpdateWebhookRequest) returns (Webhook);
+  rpc DeleteWebhook(DeleteWebhookRequest) returns (google.protobuf.Empty);
+
+  rpc ListLogs(ListLogsRequest) returns (ListLogsResponse);
+}
