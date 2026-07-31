@@ -7,10 +7,17 @@ import (
 	"time"
 )
 
-// MySQL reserved identifiers used as column names in Faridoon's schema.
+// MySQL keyword/reserved identifiers used as column/table names in Faridoon's schema.
+// Quote opportunistically so MySQL 8+ reserved-word changes do not break queries.
 const (
-	colGroup = "`group`"
-	colKey   = "`key`"
+	colGroup    = "`group`"
+	colKey      = "`key`"
+	colUser     = "`user`"
+	colEvent    = "`event`"
+	colPassword = "`password`"
+	colAction   = "`action`"
+	tableGroups = "`groups`"
+	tableLogs   = "`logs`"
 )
 
 type QuoteRow struct {
@@ -153,42 +160,16 @@ func NewMySQL(db *sql.DB) *MySQL {
 	return &MySQL{db: db}
 }
 
-func maxMigrationID(ids []string) string {
-	if len(ids) == 0 {
-		return ""
-	}
-	latest := ids[0]
-	for _, id := range ids[1:] {
-		if id > latest {
-			latest = id
-		}
-	}
-	return latest
-}
-
-func scanMigrationIDs(rows *sql.Rows) ([]string, error) {
-	var ids []string
-	for rows.Next() {
-		var id string
-		if err := rows.Scan(&id); err != nil {
-			return nil, err
-		}
-		ids = append(ids, id)
-	}
-	return ids, nil
-}
-
 func (m *MySQL) LatestMigration(ctx context.Context) (string, error) {
-	rows, err := m.db.QueryContext(ctx, "SELECT id FROM migrations")
+	var id sql.NullString
+	err := m.db.QueryRowContext(ctx, `SELECT MAX(id) FROM migrations`).Scan(&id)
 	if err != nil {
 		return "", err
 	}
-	defer func() { _ = rows.Close() }()
-	ids, err := scanMigrationIDs(rows)
-	if err != nil {
-		return "", err
+	if !id.Valid {
+		return "", nil
 	}
-	return maxMigrationID(ids), nil
+	return id.String, nil
 }
 
 func quoteSelectSQL() string {
@@ -308,7 +289,7 @@ SELECT COUNT(*) FROM (
   JOIN privileges_g pg ON pg.`+colGroup+` = u.`+colGroup+`
   JOIN permissions p ON p.id = pg.permission AND p.`+colKey+` = ?
   UNION
-  SELECT pu.user AS id FROM privileges_u pu
+  SELECT pu.`+colUser+` AS id FROM privileges_u pu
   JOIN permissions p ON p.id = pu.permission AND p.`+colKey+` = ?
 ) t`, key, key).Scan(&n)
 	return n, err
@@ -323,7 +304,7 @@ SELECT COUNT(*) FROM (
   JOIN permissions p ON p.id = pg.permission AND p.`+colKey+` = ?
   WHERE u.`+colGroup+` <> ?
   UNION
-  SELECT pu.user AS id FROM privileges_u pu
+  SELECT pu.`+colUser+` AS id FROM privileges_u pu
   JOIN permissions p ON p.id = pu.permission AND p.`+colKey+` = ?
 ) t`, key, groupID, key).Scan(&n)
 	return n, err
@@ -387,10 +368,10 @@ func (m *MySQL) CastVote(ctx context.Context, quoteID, userID, delta int) error 
 		return err
 	}
 	defer func() { _ = tx.Rollback() }()
-	if _, err := tx.ExecContext(ctx, `DELETE FROM votes WHERE quote = ? AND user = ?`, quoteID, userID); err != nil {
+	if _, err := tx.ExecContext(ctx, "DELETE FROM votes WHERE quote = ? AND "+colUser+" = ?", quoteID, userID); err != nil {
 		return err
 	}
-	if _, err := tx.ExecContext(ctx, `INSERT INTO votes (quote, user, delta) VALUES (?, ?, ?)`, quoteID, userID, delta); err != nil {
+	if _, err := tx.ExecContext(ctx, "INSERT INTO votes (quote, "+colUser+", delta) VALUES (?, ?, ?)", quoteID, userID, delta); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -403,7 +384,7 @@ func (m *MySQL) UserCount(ctx context.Context) (int, error) {
 }
 
 func userSelectSQL() string {
-	return "SELECT u.id, u.username, u.password, COALESCE(u." + colGroup + ", 0), COALESCE(g.title, '') FROM users u LEFT JOIN groups g ON u." + colGroup + " = g.id"
+	return "SELECT u.id, u.username, u." + colPassword + ", COALESCE(u." + colGroup + ", 0), COALESCE(g.title, '') FROM users u LEFT JOIN " + tableGroups + " g ON u." + colGroup + " = g.id"
 }
 
 func scanUser(s interface{ Scan(...any) error }) (*UserRow, error) {
@@ -448,7 +429,7 @@ func (m *MySQL) FindUser(ctx context.Context, id int) (*UserRow, error) {
 
 func (m *MySQL) CreateUser(ctx context.Context, username, passwordHash string, groupID int) (int, error) {
 	res, err := m.db.ExecContext(ctx,
-		"INSERT INTO users (username, password, "+colGroup+", registered) VALUES (?, ?, ?, NOW())",
+		"INSERT INTO users (username, "+colPassword+", "+colGroup+", registered) VALUES (?, ?, ?, NOW())",
 		username, passwordHash, groupID)
 	if err != nil {
 		return 0, err
@@ -458,7 +439,7 @@ func (m *MySQL) CreateUser(ctx context.Context, username, passwordHash string, g
 }
 
 func (m *MySQL) UpdatePassword(ctx context.Context, userID int, passwordHash string) error {
-	_, err := m.db.ExecContext(ctx, `UPDATE users SET password = ? WHERE id = ?`, passwordHash, userID)
+	_, err := m.db.ExecContext(ctx, "UPDATE users SET "+colPassword+" = ? WHERE id = ?", passwordHash, userID)
 	return err
 }
 
@@ -481,8 +462,8 @@ func (m *MySQL) ListUsers(ctx context.Context) ([]UserRow, error) {
 	return scanUsers(rows)
 }
 
-func (m *MySQL) loadPrivKeys(ctx context.Context, query string, arg any) ([]string, error) {
-	rows, err := m.db.QueryContext(ctx, query, arg)
+func (m *MySQL) loadPrivKeys(ctx context.Context, query string, args ...any) ([]string, error) {
+	rows, err := m.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -498,41 +479,14 @@ func (m *MySQL) loadPrivKeys(ctx context.Context, query string, arg any) ([]stri
 	return keys, nil
 }
 
-func mergePrivKeys(into map[string]struct{}, keys []string) {
-	for _, k := range keys {
-		into[k] = struct{}{}
-	}
-}
-
-func privKeysToSlice(privs map[string]struct{}) []string {
-	out := make([]string, 0, len(privs))
-	for k := range privs {
-		out = append(out, k)
-	}
-	return out
-}
-
 func (m *MySQL) UserPrivileges(ctx context.Context, userID, groupID int) ([]string, error) {
-	privs := map[string]struct{}{}
-	q1 := "SELECT p." + colKey + " FROM privileges_u pu JOIN permissions p ON p.id = pu.permission WHERE pu.user = ?"
-	userKeys, err := m.loadPrivKeys(ctx, q1, userID)
-	if err != nil {
-		return nil, err
-	}
-	mergePrivKeys(privs, userKeys)
-	if groupID > 0 {
-		q2 := "SELECT p." + colKey + " FROM privileges_g pg JOIN permissions p ON p.id = pg.permission WHERE pg." + colGroup + " = ?"
-		groupKeys, groupErr := m.loadPrivKeys(ctx, q2, groupID)
-		if groupErr != nil {
-			return nil, groupErr
-		}
-		mergePrivKeys(privs, groupKeys)
-	}
-	return privKeysToSlice(privs), nil
+	q := "SELECT p." + colKey + " FROM privileges_u pu JOIN permissions p ON p.id = pu.permission WHERE pu." + colUser + " = ?" +
+		" UNION SELECT p." + colKey + " FROM privileges_g pg JOIN permissions p ON p.id = pg.permission WHERE pg." + colGroup + " = ?"
+	return m.loadPrivKeys(ctx, q, userID, groupID)
 }
 
 func (m *MySQL) ListGroups(ctx context.Context) ([]GroupRow, error) {
-	rows, err := m.db.QueryContext(ctx, `SELECT id, title FROM groups ORDER BY id`)
+	rows, err := m.db.QueryContext(ctx, "SELECT id, title FROM "+tableGroups+" ORDER BY id")
 	if err != nil {
 		return nil, err
 	}
@@ -549,7 +503,7 @@ func (m *MySQL) ListGroups(ctx context.Context) ([]GroupRow, error) {
 }
 
 func (m *MySQL) FindGroup(ctx context.Context, id int) (*GroupRow, error) {
-	row := m.db.QueryRowContext(ctx, `SELECT id, title FROM groups WHERE id = ?`, id)
+	row := m.db.QueryRowContext(ctx, "SELECT id, title FROM "+tableGroups+" WHERE id = ?", id)
 	var g GroupRow
 	if err := row.Scan(&g.ID, &g.Title); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -587,19 +541,29 @@ func (m *MySQL) GroupsWithPermissions(ctx context.Context) ([]GroupRow, map[int]
 	if err != nil {
 		return nil, nil, err
 	}
-	perms := map[int][]GroupPermissionRow{}
+	perms := make(map[int][]GroupPermissionRow, len(groups))
 	for _, g := range groups {
-		gp, loadErr := m.loadGroupPerms(ctx, g.ID)
-		if loadErr != nil {
-			return nil, nil, loadErr
+		perms[g.ID] = nil
+	}
+	q := "SELECT gp." + colGroup + ", gp.permission, COALESCE(p." + colKey + ", ''), COALESCE(p.description, '') FROM privileges_g gp LEFT JOIN permissions p ON gp.permission = p.id"
+	rows, err := m.db.QueryContext(ctx, q)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var groupID int
+		var gp GroupPermissionRow
+		if scanErr := rows.Scan(&groupID, &gp.PermissionID, &gp.Key, &gp.Description); scanErr != nil {
+			return nil, nil, scanErr
 		}
-		perms[g.ID] = gp
+		perms[groupID] = append(perms[groupID], gp)
 	}
 	return groups, perms, nil
 }
 
 func (m *MySQL) CreateGroup(ctx context.Context, title string) (int, error) {
-	res, err := m.db.ExecContext(ctx, `INSERT INTO groups (title) VALUES (?)`, title)
+	res, err := m.db.ExecContext(ctx, "INSERT INTO "+tableGroups+" (title) VALUES (?)", title)
 	if err != nil {
 		return 0, err
 	}
@@ -608,7 +572,7 @@ func (m *MySQL) CreateGroup(ctx context.Context, title string) (int, error) {
 }
 
 func (m *MySQL) DeleteGroup(ctx context.Context, id int) error {
-	_, err := m.db.ExecContext(ctx, `DELETE FROM groups WHERE id = ? LIMIT 1`, id)
+	_, err := m.db.ExecContext(ctx, "DELETE FROM "+tableGroups+" WHERE id = ? LIMIT 1", id)
 	return err
 }
 
@@ -659,10 +623,10 @@ func (m *MySQL) ListWebhooks(ctx context.Context) ([]WebhookRow, error) {
 }
 
 func webhookSelectSQL() string {
-	return `SELECT id, url, event, secret, enabled,
-		 COALESCE(DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s'), ''),
-		 COALESCE(DATE_FORMAT(updated, '%Y-%m-%d %H:%i:%s'), '')
-		 FROM webhooks`
+	return "SELECT id, url, " + colEvent + ", secret, enabled," +
+		" COALESCE(DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s'), '')," +
+		" COALESCE(DATE_FORMAT(updated, '%Y-%m-%d %H:%i:%s'), '')" +
+		" FROM webhooks"
 }
 
 func (m *MySQL) FindWebhook(ctx context.Context, id int) (*WebhookRow, error) {
@@ -675,7 +639,7 @@ func (m *MySQL) FindWebhook(ctx context.Context, id int) (*WebhookRow, error) {
 }
 
 func (m *MySQL) EnabledWebhooksForEvent(ctx context.Context, event string) ([]WebhookRow, error) {
-	rows, err := m.db.QueryContext(ctx, webhookSelectSQL()+" WHERE event = ? AND enabled = 1", event)
+	rows, err := m.db.QueryContext(ctx, webhookSelectSQL()+" WHERE "+colEvent+" = ? AND enabled = 1", event)
 	if err != nil {
 		return nil, err
 	}
@@ -690,7 +654,7 @@ func (m *MySQL) CreateWebhook(ctx context.Context, url, secret, event string, en
 	}
 	now := time.Now()
 	res, err := m.db.ExecContext(ctx,
-		`INSERT INTO webhooks (url, secret, event, enabled, created, updated) VALUES (?, ?, ?, ?, ?, ?)`,
+		"INSERT INTO webhooks (url, secret, "+colEvent+", enabled, created, updated) VALUES (?, ?, ?, ?, ?, ?)",
 		url, secret, event, en, now, now)
 	if err != nil {
 		return 0, err
@@ -739,7 +703,7 @@ func (m *MySQL) UpdateWebhook(ctx context.Context, id int, fields map[string]any
 		en = 1
 	}
 	_, err = m.db.ExecContext(ctx,
-		`UPDATE webhooks SET url = ?, secret = ?, event = ?, enabled = ?, updated = ? WHERE id = ? LIMIT 1`,
+		"UPDATE webhooks SET url = ?, secret = ?, "+colEvent+" = ?, enabled = ?, updated = ? WHERE id = ? LIMIT 1",
 		cur.URL, cur.Secret, cur.Event, en, time.Now(), id)
 	return err
 }
@@ -782,8 +746,8 @@ func (m *MySQL) InsertLog(ctx context.Context, entry LogEntry) error {
 		entityID = entry.EntityID
 	}
 	_, err := m.db.ExecContext(ctx,
-		`INSERT INTO logs (created, actor_user_id, actor_username, action, entity_type, entity_id, detail, ip)
-		 VALUES (?, ?, NULLIF(?, ''), ?, NULLIF(?, ''), ?, NULLIF(?, ''), NULLIF(?, ''))`,
+		"INSERT INTO "+tableLogs+" (created, actor_user_id, actor_username, "+colAction+", entity_type, entity_id, detail, ip)"+
+			" VALUES (?, ?, NULLIF(?, ''), ?, NULLIF(?, ''), ?, NULLIF(?, ''), NULLIF(?, ''))",
 		created, actorID, entry.ActorUsername, entry.Action, entry.EntityType, entityID, entry.Detail, entry.IP)
 	return err
 }
@@ -817,15 +781,15 @@ func scanLogRows(rows *sql.Rows) ([]LogEntry, error) {
 func (m *MySQL) ListLogs(ctx context.Context, page, pageSize int) ([]LogEntry, int, error) {
 	page, pageSize = clampLogPage(page, pageSize)
 	var total int
-	if err := m.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM logs`).Scan(&total); err != nil {
+	if err := m.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM "+tableLogs).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	offset := (page - 1) * pageSize
 	rows, err := m.db.QueryContext(ctx,
-		`SELECT id, COALESCE(DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s'), ''),
-		 COALESCE(actor_user_id, 0), COALESCE(actor_username, ''), action,
-		 COALESCE(entity_type, ''), COALESCE(entity_id, 0), COALESCE(detail, ''), COALESCE(ip, '')
-		 FROM logs ORDER BY id DESC LIMIT ? OFFSET ?`, pageSize, offset)
+		"SELECT id, COALESCE(DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s'), ''),"+
+			" COALESCE(actor_user_id, 0), COALESCE(actor_username, ''), "+colAction+","+
+			" COALESCE(entity_type, ''), COALESCE(entity_id, 0), COALESCE(detail, ''), COALESCE(ip, '')"+
+			" FROM "+tableLogs+" ORDER BY id DESC LIMIT ? OFFSET ?", pageSize, offset)
 	if err != nil {
 		return nil, 0, err
 	}
