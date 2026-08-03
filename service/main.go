@@ -261,6 +261,9 @@ func spaFileServer(root string) http.Handler {
 			http.NotFound(w, r)
 			return
 		}
+		if isServiceWorkerAsset(r.URL.Path) {
+			w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+		}
 		target := spaTarget(root, rootAbs, r.URL.Path)
 		if target == indexPath {
 			http.ServeFile(w, r, indexPath)
@@ -268,6 +271,14 @@ func spaFileServer(root string) http.Handler {
 		}
 		fs.ServeHTTP(w, r)
 	})
+}
+
+func isServiceWorkerAsset(urlPath string) bool {
+	base := filepath.Base(urlPath)
+	if base == "sw.js" {
+		return true
+	}
+	return strings.HasPrefix(base, "workbox-") && strings.HasSuffix(base, ".js")
 }
 
 func spaTarget(root, rootAbs, urlPath string) string {
