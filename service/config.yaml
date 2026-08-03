@@ -2,7 +2,6 @@
 configVersion: 1
 listen: ":8080"
 siteTitle: Faridoon
-requiredMigration: 11.cvar-category-ordinal.sql
 
 database:
   host: mysql

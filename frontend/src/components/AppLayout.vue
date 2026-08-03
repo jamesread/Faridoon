@@ -1,5 +1,6 @@
 <script setup>
 import Header from 'picocrank/vue/components/Header.vue'
+import QuickSearch from 'picocrank/vue/components/QuickSearch.vue'
 import { computed, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import {
@@ -9,10 +10,13 @@ import {
   PlusSignIcon,
   Tick02Icon,
   Link01Icon,
+  QuoteDownIcon,
 } from '@hugeicons/core-free-icons'
 import { initState, loadInit } from '../composables/useInit'
+import { client } from '../composables/client'
 
 const router = useRouter()
+const quickSearchRef = ref(null)
 const siteTitle = computed(() => initState.siteTitle || 'Faridoon')
 const appVersion = computed(() => initState.version || 'development')
 const auth = computed(() => initState.user)
@@ -129,6 +133,46 @@ function goHome() {
   router.push({ name: 'quotes' })
 }
 
+function truncateQuote(content, max = 120) {
+  const text = String(content || '').replace(/\s+/g, ' ').trim()
+  if (text.length <= max) {
+    return text
+  }
+  return `${text.slice(0, max)}…`
+}
+
+async function onQuoteSearch(query) {
+  const q = String(query || '').trim()
+  if (!quickSearchRef.value) {
+    return
+  }
+  if (!q) {
+    quickSearchRef.value.clearItems()
+    return
+  }
+  try {
+    const res = await client.listQuotes({
+      query: q,
+      page: 1,
+      order: 'latest',
+    })
+    const items = (res.quotes || []).map((quote) => ({
+      id: `quote-${quote.id}`,
+      title: `#${quote.id}`,
+      description: truncateQuote(quote.content),
+      // Keep client-side QuickSearch filter from hiding server matches.
+      match: q,
+      category: 'Quote',
+      icon: QuoteDownIcon,
+      type: 'callback',
+      callback: () => router.push({ name: 'quote-show', params: { id: String(quote.id) } }),
+    }))
+    quickSearchRef.value.setItems(items)
+  } catch {
+    quickSearchRef.value.clearItems()
+  }
+}
+
 defineExpose({ loadInit })
 </script>
 
@@ -144,6 +188,16 @@ defineExpose({ loadInit })
     :username="auth?.username || ''"
     @logo-click="goHome"
   >
+    <template #toolbar>
+      <QuickSearch
+        ref="quickSearchRef"
+        placeholder="Search quotes..."
+        :auto-import-routes="false"
+        :max-results="15"
+        :search-fields="['match', 'title', 'description']"
+        @search="onQuoteSearch"
+      />
+    </template>
     <template #user-info>
       <div class="user-info">
         <router-link v-if="auth" to="/account">{{ auth.username }}</router-link>

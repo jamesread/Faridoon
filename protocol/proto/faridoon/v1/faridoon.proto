@@ -84,6 +84,7 @@ message RegisterResponse {
 message ListQuotesRequest {
   string order = 1; // latest | random | rank
   int32 page = 2;
+  string query = 3; // full-text / substring search; empty = no filter
 }
 
 message ListQuotesResponse {

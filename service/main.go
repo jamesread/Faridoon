@@ -76,13 +76,26 @@ func runWithDB(cfg *config.Config, db *sql.DB) error {
 }
 
 func prepareStore(ctx context.Context, st store.Store, cfg *config.Config) error {
-	if err := assertMigration(ctx, st, cfg.RequiredMigration); err != nil {
+	if err := assertMigration(ctx, st, config.RequiredMigration); err != nil {
 		return err
 	}
+	logDatabaseMigration(ctx, st)
 	if err := ensureDefaultCvars(ctx, st, cfg.SiteTitle); err != nil {
 		return fmt.Errorf("cvars: %w", err)
 	}
 	return nil
+}
+
+func logDatabaseMigration(ctx context.Context, st store.Store) {
+	latest, err := st.LatestMigration(ctx)
+	if err != nil {
+		logrus.Warnf("Could not read current database migration: %v", err)
+		return
+	}
+	if latest == "" {
+		latest = "none"
+	}
+	logrus.Infof("Database migration: %s", latest)
 }
 
 func logConfigLoaded() {

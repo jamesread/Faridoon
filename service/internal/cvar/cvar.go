@@ -29,8 +29,8 @@ type Def struct {
 	Title       string
 	Description string
 	Category    string
-	Ordinal     int
 	ValueString string
+	Ordinal     int
 	ValueInt    int
 }
 
@@ -68,9 +68,9 @@ func Defaults(siteTitle string) []Def {
 		},
 		{
 			Key: KeyGuestAddRequireApproval, MainType: TypeBool, ValueInt: 1,
-			Title: "Require approval for guest submissions",
+			Title:       "Require approval for guest submissions",
 			Description: "When enabled, quotes submitted by guests wait for approval before they are published. Absolutely should not be disabled for untrusted networks or instances exposed on the public internet.",
-			Category: CategoryAccess, Ordinal: 70,
+			Category:    CategoryAccess, Ordinal: 70,
 		},
 	}
 }

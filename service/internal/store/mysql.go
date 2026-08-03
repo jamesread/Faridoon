@@ -4,7 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 // MySQL keyword/reserved identifiers used as column/table names in Faridoon's schema.
@@ -95,7 +98,7 @@ type Store interface {
 	HasMigration(ctx context.Context, id string) (bool, error)
 	FindQuote(ctx context.Context, id int) (*QuoteRow, error)
 	FindQuoteRaw(ctx context.Context, id int) (*QuoteRow, error)
-	ListApproved(ctx context.Context, order string, page, perPage int) ([]QuoteRow, int, error)
+	ListApproved(ctx context.Context, order string, page, perPage int, query string) ([]QuoteRow, int, error)
 	ListPending(ctx context.Context) ([]QuoteRow, error)
 	CountPending(ctx context.Context) (int, error)
 	CountApproved(ctx context.Context) (int, error)
@@ -152,8 +155,8 @@ type CvarRow struct {
 	Title       string
 	Description string
 	Category    string
-	Ordinal     int
 	ValueString string
+	Ordinal     int
 	ValueInt    int
 }
 
@@ -233,6 +236,52 @@ func approvedOrderSQL(order string) string {
 	}
 }
 
+// fulltextMinTokenLen matches InnoDB's default innodb_ft_min_token_size.
+const fulltextMinTokenLen = 3
+
+func buildBooleanQuery(raw string) string {
+	fields := strings.Fields(raw)
+	var parts []string
+	for _, field := range fields {
+		token := sanitizeFulltextToken(field)
+		if utf8.RuneCountInString(token) < fulltextMinTokenLen {
+			continue
+		}
+		parts = append(parts, "+"+token+"*")
+	}
+	return strings.Join(parts, " ")
+}
+
+func sanitizeFulltextToken(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	for _, r := range s {
+		switch r {
+		case '+', '-', '>', '<', '(', ')', '~', '*', '"', '@':
+			continue
+		default:
+			if unicode.IsSpace(r) {
+				continue
+			}
+			b.WriteRune(r)
+		}
+	}
+	return b.String()
+}
+
+// likeEscapeChar is used in LIKE ... ESCAPE so user %/_ cannot act as wildcards.
+// Avoids backslash, which is awkward in Go/SQL string literals.
+const likeEscapeChar = "|"
+
+func escapeLikePattern(s string) string {
+	replacer := strings.NewReplacer(
+		likeEscapeChar, likeEscapeChar+likeEscapeChar,
+		"%", likeEscapeChar+"%",
+		"_", likeEscapeChar+"_",
+	)
+	return replacer.Replace(s)
+}
+
 func (m *MySQL) FindQuote(ctx context.Context, id int) (*QuoteRow, error) {
 	row := m.db.QueryRowContext(ctx, quoteSelectSQL()+" WHERE q.id = ?", id)
 	q, err := scanQuote(row)
@@ -254,16 +303,100 @@ func (m *MySQL) FindQuoteRaw(ctx context.Context, id int) (*QuoteRow, error) {
 	return q, err
 }
 
-func (m *MySQL) ListApproved(ctx context.Context, order string, page, perPage int) ([]QuoteRow, int, error) {
+func (m *MySQL) ListApproved(ctx context.Context, order string, page, perPage int, query string) ([]QuoteRow, int, error) {
+	query = strings.TrimSpace(query)
+	if page < 1 {
+		page = 1
+	}
+	if perPage < 1 {
+		perPage = 1
+	}
+	offset := (page - 1) * perPage
+
+	if query == "" {
+		return m.listApprovedUnfiltered(ctx, order, perPage, offset)
+	}
+
+	booleanQuery := buildBooleanQuery(query)
+	if booleanQuery != "" {
+		return m.listApprovedFulltext(ctx, order, perPage, offset, booleanQuery)
+	}
+	return m.listApprovedLike(ctx, order, perPage, offset, query)
+}
+
+func (m *MySQL) listApprovedUnfiltered(ctx context.Context, order string, perPage, offset int) ([]QuoteRow, int, error) {
 	var total int
 	if err := m.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM quotes WHERE approval = 1`).Scan(&total); err != nil {
 		return nil, 0, err
 	}
-	if page < 1 {
-		page = 1
+	rows, err := m.db.QueryContext(ctx, quoteSelectSQL()+" WHERE "+approvedQuoteFilterSQL()+" "+approvedOrderSQL(order)+" LIMIT ? OFFSET ?", perPage, offset)
+	if err != nil {
+		return nil, 0, err
 	}
-	offset := (page - 1) * perPage
-	rows, err := m.db.QueryContext(ctx, quoteSelectSQL()+" WHERE q.approval = 1 "+approvedOrderSQL(order)+" LIMIT ? OFFSET ?", perPage, offset)
+	defer func() { _ = rows.Close() }()
+	out, err := scanQuotes(rows)
+	if err != nil {
+		return nil, 0, err
+	}
+	return out, total, nil
+}
+
+// approvedQuoteFilterSQL is the shared predicate for public listing and search.
+// Pending (unapproved) quotes must never appear in ListApproved results.
+func approvedQuoteFilterSQL() string {
+	return "q.approval = 1"
+}
+
+func (m *MySQL) listApprovedFulltext(ctx context.Context, order string, perPage, offset int, booleanQuery string) ([]QuoteRow, int, error) {
+	var total int
+	if err := m.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM quotes WHERE approval = 1 AND MATCH(content) AGAINST (? IN BOOLEAN MODE)`,
+		booleanQuery,
+	).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	where := approvedQuoteFilterSQL() + " AND MATCH(q.content) AGAINST (? IN BOOLEAN MODE)"
+	orderSQL, args := fulltextOrderAndArgs(order, booleanQuery)
+	args = append(args, perPage, offset)
+	rows, err := m.db.QueryContext(ctx,
+		quoteSelectSQL()+" WHERE "+where+" "+orderSQL+" LIMIT ? OFFSET ?",
+		args...,
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer func() { _ = rows.Close() }()
+	out, err := scanQuotes(rows)
+	if err != nil {
+		return nil, 0, err
+	}
+	return out, total, nil
+}
+
+func fulltextOrderAndArgs(order, booleanQuery string) (string, []any) {
+	args := []any{booleanQuery}
+	if order == "" || order == "latest" {
+		return "ORDER BY MATCH(q.content) AGAINST (? IN BOOLEAN MODE) DESC, q.created DESC",
+			append(args, booleanQuery)
+	}
+	return approvedOrderSQL(order), args
+}
+
+func (m *MySQL) listApprovedLike(ctx context.Context, order string, perPage, offset int, query string) ([]QuoteRow, int, error) {
+	pattern := "%" + escapeLikePattern(query) + "%"
+	var total int
+	if err := m.db.QueryRowContext(ctx,
+		`SELECT COUNT(*) FROM quotes WHERE approval = 1 AND content LIKE ? ESCAPE '`+likeEscapeChar+`'`,
+		pattern,
+	).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+	where := approvedQuoteFilterSQL() + ` AND q.content LIKE ? ESCAPE '` + likeEscapeChar + `'`
+	rows, err := m.db.QueryContext(ctx,
+		quoteSelectSQL()+" WHERE "+where+" "+approvedOrderSQL(order)+" LIMIT ? OFFSET ?",
+		pattern, perPage, offset,
+	)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -560,21 +693,28 @@ func (m *MySQL) GroupsWithPermissions(ctx context.Context) ([]GroupRow, map[int]
 	for _, g := range groups {
 		perms[g.ID] = nil
 	}
+	if loadErr := m.loadAllGroupPermissions(ctx, perms); loadErr != nil {
+		return nil, nil, loadErr
+	}
+	return groups, perms, nil
+}
+
+func (m *MySQL) loadAllGroupPermissions(ctx context.Context, perms map[int][]GroupPermissionRow) error {
 	q := "SELECT gp." + colGroup + ", gp.permission, COALESCE(p." + colKey + ", ''), COALESCE(p.description, '') FROM privileges_g gp LEFT JOIN permissions p ON gp.permission = p.id"
 	rows, err := m.db.QueryContext(ctx, q)
 	if err != nil {
-		return nil, nil, err
+		return err
 	}
 	defer func() { _ = rows.Close() }()
 	for rows.Next() {
 		var groupID int
 		var gp GroupPermissionRow
 		if scanErr := rows.Scan(&groupID, &gp.PermissionID, &gp.Key, &gp.Description); scanErr != nil {
-			return nil, nil, scanErr
+			return scanErr
 		}
 		perms[groupID] = append(perms[groupID], gp)
 	}
-	return groups, perms, nil
+	return nil
 }
 
 func (m *MySQL) CreateGroup(ctx context.Context, title string) (int, error) {

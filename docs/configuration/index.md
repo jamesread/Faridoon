@@ -29,9 +29,10 @@ sql-migrate (on container start) expects `DB_HOST`, `DB_USER`, `DB_PASS`, and `D
 ## Application (YAML / env)
 
 - `siteTitle` / `SITE_TITLE`: initial site title used to **seed** the `site_title` cvar on first startup. After that, the live header and document title come from Settings.
-- `requiredMigration` / `REQUIRED_MIGRATION`: expected sql-migrate id (default `11.cvar-category-ordinal.sql`)
 - `listen`: HTTP listen address (default `:8080`)
 - `PORT`: if set, overrides `listen` (bare port like `8080` or a full address)
+
+The expected database migration id is a compile-time constant (`config.RequiredMigration`), not a config setting.
 
 Feature flags are **not** environment variables and are **not** set under a YAML `features:` block.
 

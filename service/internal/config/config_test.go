@@ -8,11 +8,11 @@ import (
 
 func TestDefaults(t *testing.T) {
 	cfg := Defaults()
-	if cfg.RequiredMigration != "11.cvar-category-ordinal.sql" {
-		t.Fatalf("migration=%s", cfg.RequiredMigration)
-	}
 	if cfg.Listen != ":8080" {
 		t.Fatalf("listen=%s", cfg.Listen)
+	}
+	if RequiredMigration != "12.quotes-content-fulltext.sql" {
+		t.Fatalf("migration=%s", RequiredMigration)
 	}
 }
 

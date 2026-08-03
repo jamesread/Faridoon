@@ -229,25 +229,44 @@ func (s *FaridoonServer) clearSessionCookie(h http.Header) {
 }
 
 func (s *FaridoonServer) ListQuotes(ctx context.Context, req *connect.Request[faridoonv1.ListQuotesRequest]) (*connect.Response[faridoonv1.ListQuotesResponse], error) {
-	page := int(req.Msg.Page)
-	if page < 1 {
-		page = 1
-	}
-	order := req.Msg.Order
-	if order == "" {
-		order = "latest"
-	}
-	perPage := s.quotesPerPage(ctx)
-	rows, total, err := s.store.ListApproved(ctx, order, page, perPage)
+	page, order, query, perPage := s.listQuotesParams(ctx, req.Msg)
+	rows, total, err := s.store.ListApproved(ctx, order, page, perPage, query)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	totalPages := (total + perPage - 1) / perPage
 	out := &faridoonv1.ListQuotesResponse{Page: int32(page), Total: int32(total), TotalPages: int32(totalPages)}
-	for i := range rows {
-		out.Quotes = append(out.Quotes, s.formatQuote(&rows[i]))
-	}
+	out.Quotes = s.approvedQuoteProtos(rows)
 	return connect.NewResponse(out), nil
+}
+
+func (s *FaridoonServer) listQuotesParams(ctx context.Context, msg *faridoonv1.ListQuotesRequest) (page int, order, query string, perPage int) {
+	page = int(msg.Page)
+	if page < 1 {
+		page = 1
+	}
+	order = msg.Order
+	if order == "" {
+		order = "latest"
+	}
+	query = strings.TrimSpace(msg.Query)
+	perPage = s.quotesPerPage(ctx)
+	if query != "" {
+		perPage = 15
+	}
+	return page, order, query, perPage
+}
+
+func (s *FaridoonServer) approvedQuoteProtos(rows []store.QuoteRow) []*faridoonv1.Quote {
+	out := make([]*faridoonv1.Quote, 0, len(rows))
+	for i := range rows {
+		// Defense in depth: search/list must never expose pending quotes.
+		if !rows[i].Approved {
+			continue
+		}
+		out = append(out, s.formatQuote(&rows[i]))
+	}
+	return out
 }
 
 func (s *FaridoonServer) GetQuote(ctx context.Context, req *connect.Request[faridoonv1.GetQuoteRequest]) (*connect.Response[faridoonv1.GetQuoteResponse], error) {

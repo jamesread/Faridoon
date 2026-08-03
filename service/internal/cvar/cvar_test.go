@@ -9,30 +9,32 @@ func TestDefaultsHaveMetadata(t *testing.T) {
 	}
 	seen := map[string]bool{}
 	for _, def := range defs {
-		if def.Key == "" {
-			t.Fatal("empty key")
-		}
-		if seen[def.Key] {
-			t.Fatalf("duplicate key %s", def.Key)
-		}
-		seen[def.Key] = true
-		if def.Title == "" {
-			t.Fatalf("%s: missing title", def.Key)
-		}
-		if def.Description == "" {
-			t.Fatalf("%s: missing description", def.Key)
-		}
-		if def.Category == "" {
-			t.Fatalf("%s: missing category", def.Key)
-		}
-		if def.Ordinal <= 0 {
-			t.Fatalf("%s: ordinal must be positive", def.Key)
-		}
-		if def.MainType == "" {
-			t.Fatalf("%s: missing main type", def.Key)
-		}
+		assertDefMetadata(t, def, seen)
 	}
 	if !seen[KeySiteTitle] {
 		t.Fatal("missing site_title")
+	}
+}
+
+func assertDefMetadata(t *testing.T, def Def, seen map[string]bool) {
+	t.Helper()
+	requireNonEmpty(t, def.Key, "key")
+	if seen[def.Key] {
+		t.Fatalf("duplicate key %s", def.Key)
+	}
+	seen[def.Key] = true
+	requireNonEmpty(t, def.Title, def.Key+": title")
+	requireNonEmpty(t, def.Description, def.Key+": description")
+	requireNonEmpty(t, def.Category, def.Key+": category")
+	requireNonEmpty(t, def.MainType, def.Key+": main type")
+	if def.Ordinal <= 0 {
+		t.Fatalf("%s: ordinal must be positive", def.Key)
+	}
+}
+
+func requireNonEmpty(t *testing.T, value, label string) {
+	t.Helper()
+	if value == "" {
+		t.Fatalf("%s: missing", label)
 	}
 }

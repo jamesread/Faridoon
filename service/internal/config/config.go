@@ -20,13 +20,15 @@ type DatabaseConfig struct {
 }
 
 type Config struct {
-	Listen            string             `yaml:"listen"`
-	SiteTitle         string             `yaml:"siteTitle"`
-	RequiredMigration string             `yaml:"requiredMigration"`
-	Auth              *authpublic.Config `yaml:"auth"`
-	Database          DatabaseConfig     `yaml:"database"`
-	ConfigVersion     int                `yaml:"configVersion"`
+	Listen        string             `yaml:"listen"`
+	SiteTitle     string             `yaml:"siteTitle"`
+	Auth          *authpublic.Config `yaml:"auth"`
+	Database      DatabaseConfig     `yaml:"database"`
+	ConfigVersion int                `yaml:"configVersion"`
 }
+
+// RequiredMigration is the sql-migrate id this binary expects to be applied.
+const RequiredMigration = "12.quotes-content-fulltext.sql"
 
 var configDirOverride string
 
@@ -74,10 +76,9 @@ func existingPath(p string) string {
 
 func Defaults() *Config {
 	return &Config{
-		ConfigVersion:     1,
-		Listen:            ":8080",
-		SiteTitle:         "Faridoon",
-		RequiredMigration: "11.cvar-category-ordinal.sql",
+		ConfigVersion: 1,
+		Listen:        ":8080",
+		SiteTitle:     "Faridoon",
 		Database: DatabaseConfig{
 			Host:     envOr("DB_HOST", "mysql"),
 			Port:     3306,
@@ -113,9 +114,6 @@ func applyConfigFallbacks(cfg *Config) {
 	if cfg.Listen == "" {
 		cfg.Listen = ":8080"
 	}
-	if cfg.RequiredMigration == "" {
-		cfg.RequiredMigration = "11.cvar-category-ordinal.sql"
-	}
 	if cfg.SiteTitle == "" {
 		cfg.SiteTitle = "Faridoon"
 	}
@@ -127,7 +125,6 @@ func applyEnvOverrides(cfg *Config) {
 	setIfNonEmpty(&cfg.Database.User, firstNonEmpty(os.Getenv("DB_USERNAME"), os.Getenv("DB_USER")))
 	setIfNonEmpty(&cfg.Database.Password, firstNonEmpty(os.Getenv("DB_PASSWORD"), os.Getenv("DB_PASS")))
 	setIfEnv(&cfg.SiteTitle, "SITE_TITLE")
-	setIfEnv(&cfg.RequiredMigration, "REQUIRED_MIGRATION")
 }
 
 func setIfEnv(dst *string, key string) {
