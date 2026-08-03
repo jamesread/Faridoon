@@ -20,6 +20,14 @@ const features = computed(() => initState.features)
 const pendingApprovals = computed(() => initState.pendingApprovals || 0)
 const headerLinks = computed(() => initState.headerLinks || [])
 
+watch(
+  siteTitle,
+  (title) => {
+    document.title = title
+  },
+  { immediate: true },
+)
+
 const navigationLinks = ref([])
 
 function pushQuoteOrder(order) {

@@ -28,7 +28,7 @@ sql-migrate (on container start) expects `DB_HOST`, `DB_USER`, `DB_PASS`, and `D
 
 ## Application (YAML / env)
 
-- `siteTitle` / `SITE_TITLE`: initial site title used to **seed** the `site_title` cvar on first startup. After that, the live header title comes from Settings.
+- `siteTitle` / `SITE_TITLE`: initial site title used to **seed** the `site_title` cvar on first startup. After that, the live header and document title come from Settings.
 - `requiredMigration` / `REQUIRED_MIGRATION`: expected sql-migrate id (default `9.cvars.sql`)
 - `listen`: HTTP listen address (default `:8080`)
 - `PORT`: if set, overrides `listen` (bare port like `8080` or a full address)
@@ -41,7 +41,7 @@ Admins manage cvars at **Account → Settings** (`/admin/settings`). Missing def
 
 | Key | Type | Default | Effect |
 |-----|------|---------|--------|
-| `site_title` | string | from `siteTitle` / `SITE_TITLE` | Header / site title |
+| `site_title` | string | from `siteTitle` / `SITE_TITLE` | Header and document (`<title>`) site title |
 | `quotes_per_page` | int | 5 | Quotes shown per page on listing (1–127) |
 | `enable_voting` | bool | off | Show vote controls; allow `VoteQuote` |
 | `enable_registration` | bool | on | Allow `/register` and `Register` |
