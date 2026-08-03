@@ -77,7 +77,7 @@ func Defaults() *Config {
 		ConfigVersion:     1,
 		Listen:            ":8080",
 		SiteTitle:         "Faridoon",
-		RequiredMigration: "9.cvars.sql",
+		RequiredMigration: "11.cvar-category-ordinal.sql",
 		Database: DatabaseConfig{
 			Host:     envOr("DB_HOST", "mysql"),
 			Port:     3306,
@@ -114,7 +114,7 @@ func applyConfigFallbacks(cfg *Config) {
 		cfg.Listen = ":8080"
 	}
 	if cfg.RequiredMigration == "" {
-		cfg.RequiredMigration = "9.cvars.sql"
+		cfg.RequiredMigration = "11.cvar-category-ordinal.sql"
 	}
 	if cfg.SiteTitle == "" {
 		cfg.SiteTitle = "Faridoon"

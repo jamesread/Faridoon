@@ -29,7 +29,7 @@ sql-migrate (on container start) expects `DB_HOST`, `DB_USER`, `DB_PASS`, and `D
 ## Application (YAML / env)
 
 - `siteTitle` / `SITE_TITLE`: initial site title used to **seed** the `site_title` cvar on first startup. After that, the live header and document title come from Settings.
-- `requiredMigration` / `REQUIRED_MIGRATION`: expected sql-migrate id (default `9.cvars.sql`)
+- `requiredMigration` / `REQUIRED_MIGRATION`: expected sql-migrate id (default `11.cvar-category-ordinal.sql`)
 - `listen`: HTTP listen address (default `:8080`)
 - `PORT`: if set, overrides `listen` (bare port like `8080` or a full address)
 
@@ -37,7 +37,7 @@ Feature flags are **not** environment variables and are **not** set under a YAML
 
 ## Settings (configuration variables)
 
-Admins manage cvars at **Account → Settings** (`/admin/settings`). Missing defaults are inserted on startup if they do not already exist.
+Admins manage cvars at **Account → Settings** (`/admin/settings`). Missing defaults are inserted on startup if they do not already exist. Title, description, category, and ordinal metadata for known cvars are refreshed from application defaults on every startup (including upgrades of older installs). The settings editor groups by category and orders by ordinal.
 
 | Key | Type | Default | Effect |
 |-----|------|---------|--------|
@@ -46,6 +46,7 @@ Admins manage cvars at **Account → Settings** (`/admin/settings`). Missing def
 | `enable_voting` | bool | off | Show vote controls; allow `VoteQuote` |
 | `enable_registration` | bool | on | Allow `/register` and `Register` |
 | `enable_guest_add` | bool | on | Allow logged-out users to submit quotes |
+| `guest_add_require_approval` | bool | on | Guest quotes wait for approval; do not disable on public/untrusted networks |
 | `enable_syntax_highlighting` | bool | off | Show syntax highlighting field when adding/editing quotes |
 
 Changing Settings reloads Init so the UI picks up new values without a process restart.

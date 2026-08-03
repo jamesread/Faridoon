@@ -150,18 +150,19 @@ func openDB(cfg *config.Config) (*sql.DB, error) {
 }
 
 func assertMigration(ctx context.Context, st store.Store, required string) error {
-	latest, err := st.LatestMigration(ctx)
+	ok, err := st.HasMigration(ctx, required)
 	if err != nil {
 		return fmt.Errorf("connected to the database, but the migrations table could not be queried. run sql-migrate up: %w", err)
 	}
+	if ok {
+		return nil
+	}
+	latest, _ := st.LatestMigration(ctx)
 	display := latest
 	if display == "" {
 		display = "null"
 	}
-	if latest != required {
-		return fmt.Errorf("requires database version %s but the database is at version %s; run database migrations", required, display)
-	}
-	return nil
+	return fmt.Errorf("requires database version %s but the database is at version %s; run database migrations", required, display)
 }
 
 func setupAuth(cfg *config.Config) (*auth.AuthShimContext, error) {

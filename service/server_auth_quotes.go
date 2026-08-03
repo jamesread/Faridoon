@@ -294,8 +294,14 @@ func canGuestAdd(su *sessionUser, guestAddEnabled bool) error {
 	return nil
 }
 
-func approvalForUser(su *sessionUser) int {
-	if su != nil && su.hasPriv("BYPASS_APPROVAL") {
+func approvalForSubmission(su *sessionUser, guestRequireApproval bool) int {
+	if su == nil {
+		if guestRequireApproval {
+			return 0
+		}
+		return 1
+	}
+	if su.hasPriv("BYPASS_APPROVAL") {
 		return 1
 	}
 	return 0
@@ -335,7 +341,7 @@ func (s *FaridoonServer) CreateQuote(ctx context.Context, req *connect.Request[f
 	if contentErr != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, contentErr)
 	}
-	approval := approvalForUser(su)
+	approval := approvalForSubmission(su, s.guestAddRequireApproval(ctx))
 	userID, username := submitterFromSession(su)
 	id, err := s.store.CreateQuote(ctx, content, approval, req.Msg.SyntaxHighlighting, userID, username)
 	if err != nil {

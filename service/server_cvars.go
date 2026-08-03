@@ -15,6 +15,8 @@ func toProtoCvar(row *store.CvarRow) *faridoonv1.Cvar {
 	return &faridoonv1.Cvar{
 		Key: row.Key, MainType: row.MainType,
 		ValueInt: int32(row.ValueInt), ValueString: row.ValueString,
+		Title: row.Title, Description: row.Description,
+		Category: row.Category, Ordinal: int32(row.Ordinal),
 	}
 }
 
@@ -29,6 +31,8 @@ func ensureDefaultCvars(ctx context.Context, st store.Store, siteTitle string) e
 	for _, def := range cvar.Defaults(siteTitle) {
 		if err := st.InsertCvarIfMissing(ctx, store.CvarRow{
 			Key: def.Key, MainType: def.MainType,
+			Title: def.Title, Description: def.Description,
+			Category: def.Category, Ordinal: def.Ordinal,
 			ValueInt: def.ValueInt, ValueString: def.ValueString,
 		}); err != nil {
 			return err
@@ -63,6 +67,10 @@ func (s *FaridoonServer) registrationEnabled(ctx context.Context) bool {
 
 func (s *FaridoonServer) guestAddEnabled(ctx context.Context) bool {
 	return s.boolCvar(ctx, cvar.KeyEnableGuestAdd, true)
+}
+
+func (s *FaridoonServer) guestAddRequireApproval(ctx context.Context) bool {
+	return s.boolCvar(ctx, cvar.KeyGuestAddRequireApproval, true)
 }
 
 func (s *FaridoonServer) syntaxHighlightingEnabled(ctx context.Context) bool {

@@ -1,7 +1,7 @@
 configVersion: 1
 listen: ":8080"
 siteTitle: Faridoon Test
-requiredMigration: 9.cvars.sql
+requiredMigration: 11.cvar-category-ordinal.sql
 
 database:
   host: 127.0.0.1

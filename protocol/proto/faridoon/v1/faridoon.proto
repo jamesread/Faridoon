@@ -336,6 +336,10 @@ message Cvar {
   string main_type = 2;
   int32 value_int = 3;
   string value_string = 4;
+  string title = 5;
+  string description = 6;
+  string category = 7;
+  int32 ordinal = 8;
 }
 
 message ListCvarsRequest {}

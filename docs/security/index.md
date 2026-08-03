@@ -17,6 +17,7 @@ You can create a usergroup for moderators. Grant `APPROVE_QUOTES` (and optionall
 Guests are not members of a group and have no privilege rows. What guests may do is controlled by Settings (cvars), not environment variables:
 
 - **enable guest add** — whether logged-out visitors can submit quotes
+- **require approval for guest submissions** — whether guest quotes wait for moderation (keep enabled on public or untrusted networks)
 - **enable registration** — whether new accounts can be created
 
 See [Configuration](../configuration/index.md) for the full list of Settings keys.

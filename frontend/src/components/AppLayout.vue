@@ -133,36 +133,38 @@ defineExpose({ loadInit })
 </script>
 
 <template>
-  <div class="app">
-    <Header
-      :title="siteTitle"
-      logo-url="/faridoon.png"
-      :sidebar-enabled="false"
-      :top-bar-enabled="true"
-      :theme-toggle-enabled="true"
-      :show-branding="true"
-      :navigation="navigation"
-      :username="auth?.username || ''"
-      @logo-click="goHome"
-    >
-      <template #user-info>
-        <div class="user-info">
-          <router-link v-if="auth" to="/account">{{ auth.username }}</router-link>
-          <router-link v-else to="/login">Login</router-link>
-        </div>
-      </template>
-    </Header>
+  <Header
+    :title="siteTitle"
+    logo-url="/faridoon.png"
+    :sidebar-enabled="false"
+    :top-bar-enabled="true"
+    :theme-toggle-enabled="true"
+    :show-branding="true"
+    :navigation="navigation"
+    :username="auth?.username || ''"
+    @logo-click="goHome"
+  >
+    <template #user-info>
+      <div class="user-info">
+        <router-link v-if="auth" to="/account">{{ auth.username }}</router-link>
+        <router-link v-else to="/login">Login</router-link>
+      </div>
+    </template>
+  </Header>
 
-    <main>
-      <slot />
-    </main>
+  <div id="layout">
+    <div id="content">
+      <main>
+        <slot />
+      </main>
 
-    <footer>
-      <span class="subtle">
-        Powered by
-        <a href="https://github.com/jamesread/Faridoon" target="_blank" rel="noopener noreferrer">Faridoon</a>
-        {{ appVersion }}
-      </span>
-    </footer>
+      <footer>
+        <span class="subtle">
+          Powered by
+          <a href="https://github.com/jamesread/Faridoon" target="_blank" rel="noopener noreferrer">Faridoon</a>
+          {{ appVersion }}
+        </span>
+      </footer>
+    </div>
   </div>
 </template>

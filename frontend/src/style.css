@@ -63,20 +63,6 @@
   text-align: center;
 }
 
-.app main {
-  max-width: 760px;
-  width: 100%;
-  margin-left: auto;
-  margin-right: auto;
-}
-
-.app footer {
-  max-width: 760px;
-  width: 100%;
-  margin: 1.5rem auto 0;
-  text-align: center;
-}
-
 .form-error {
   color: #c0392b;
   font-size: 0.9rem;
@@ -92,20 +78,6 @@
 .user-info a {
   color: inherit;
   text-decoration: none;
-}
-
-.app header .topbar {
-  width: auto;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.app header .topbar .topbar-links {
-  flex-wrap: wrap;
-}
-
-.app header .image-and-title .fg1 {
-  display: none;
 }
 
 .quote-edit-actions {
@@ -216,6 +188,10 @@ form.form-stack input:not([type="checkbox"]) {
   margin-top: 0.75rem;
 }
 
+.settings-form {
+  display: contents;
+}
+
 .settings-cvar {
   padding-bottom: 1.25rem;
   margin-bottom: 1.25rem;
@@ -228,16 +204,25 @@ form.form-stack input:not([type="checkbox"]) {
   padding-bottom: 0;
 }
 
-.settings-cvar > label {
+.settings-cvar > label,
+.settings-cvar-bool {
   display: flex;
   flex-direction: column;
   align-items: stretch;
   gap: 0.5rem;
 }
 
-.settings-cvar > label:has(input[type="checkbox"]) {
+.settings-cvar-bool > label {
+  display: flex;
   flex-direction: row;
   align-items: center;
+  gap: 0.5rem;
+}
+
+.settings-cvar-description {
+  opacity: 0.7;
+  font-size: 0.9em;
+  font-weight: normal;
 }
 
 .settings-cvar input:not([type="checkbox"]) {

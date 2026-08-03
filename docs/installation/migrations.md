@@ -10,4 +10,4 @@ cd /var/faridoon/database
 sql-migrate up
 ```
 
-Current required migration id: `9.cvars.sql` (configuration variables table; earlier migrations include quote submitter columns, header links, audit logs, webhooks and password column width).
+Current required migration id: `11.cvar-category-ordinal.sql` (cvar category/ordinal columns; earlier migrations include cvar title/description, the cvars table, quote submitter columns, header links, audit logs, webhooks and password column width).

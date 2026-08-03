@@ -92,6 +92,7 @@ type HeaderLinkRow struct {
 
 type Store interface {
 	LatestMigration(ctx context.Context) (string, error)
+	HasMigration(ctx context.Context, id string) (bool, error)
 	FindQuote(ctx context.Context, id int) (*QuoteRow, error)
 	FindQuoteRaw(ctx context.Context, id int) (*QuoteRow, error)
 	ListApproved(ctx context.Context, order string, page, perPage int) ([]QuoteRow, int, error)
@@ -148,6 +149,10 @@ type Store interface {
 type CvarRow struct {
 	Key         string
 	MainType    string
+	Title       string
+	Description string
+	Category    string
+	Ordinal     int
 	ValueString string
 	ValueInt    int
 }
@@ -162,7 +167,8 @@ func NewMySQL(db *sql.DB) *MySQL {
 
 func (m *MySQL) LatestMigration(ctx context.Context) (string, error) {
 	var id sql.NullString
-	err := m.db.QueryRowContext(ctx, `SELECT MAX(id) FROM migrations`).Scan(&id)
+	err := m.db.QueryRowContext(ctx,
+		`SELECT id FROM migrations ORDER BY applied_at DESC, id DESC LIMIT 1`).Scan(&id)
 	if err != nil {
 		return "", err
 	}
@@ -170,6 +176,15 @@ func (m *MySQL) LatestMigration(ctx context.Context) (string, error) {
 		return "", nil
 	}
 	return id.String, nil
+}
+
+func (m *MySQL) HasMigration(ctx context.Context, id string) (bool, error) {
+	var n int
+	err := m.db.QueryRowContext(ctx, `SELECT COUNT(*) FROM migrations WHERE id = ?`, id).Scan(&n)
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
 }
 
 func quoteSelectSQL() string {
@@ -892,19 +907,22 @@ func (m *MySQL) DeleteHeaderLink(ctx context.Context, id int) error {
 }
 
 func cvarSelectSQL() string {
-	return `SELECT cvar_key, COALESCE(cvar_value_int, 0), COALESCE(cvar_value_string, ''), cvar_main_type FROM cvars`
+	return `SELECT cvar_key, COALESCE(cvar_value_int, 0), COALESCE(cvar_value_string, ''), cvar_main_type,
+		COALESCE(cvar_title, ''), COALESCE(cvar_description, ''), COALESCE(cvar_category, ''), COALESCE(cvar_ordinal, 0)
+		FROM cvars`
 }
 
 func scanCvar(s interface{ Scan(...any) error }) (*CvarRow, error) {
 	var row CvarRow
-	if err := s.Scan(&row.Key, &row.ValueInt, &row.ValueString, &row.MainType); err != nil {
+	if err := s.Scan(&row.Key, &row.ValueInt, &row.ValueString, &row.MainType, &row.Title, &row.Description,
+		&row.Category, &row.Ordinal); err != nil {
 		return nil, err
 	}
 	return &row, nil
 }
 
 func (m *MySQL) ListCvars(ctx context.Context) ([]CvarRow, error) {
-	rows, err := m.db.QueryContext(ctx, cvarSelectSQL()+" ORDER BY cvar_key")
+	rows, err := m.db.QueryContext(ctx, cvarSelectSQL()+" ORDER BY cvar_ordinal, cvar_key")
 	if err != nil {
 		return nil, err
 	}
@@ -931,9 +949,14 @@ func (m *MySQL) FindCvar(ctx context.Context, key string) (*CvarRow, error) {
 
 func (m *MySQL) InsertCvarIfMissing(ctx context.Context, row CvarRow) error {
 	_, err := m.db.ExecContext(ctx,
-		`INSERT IGNORE INTO cvars (cvar_key, cvar_value_int, cvar_value_string, cvar_main_type)
-		 VALUES (?, ?, NULLIF(?, ''), ?)`,
-		row.Key, row.ValueInt, row.ValueString, row.MainType)
+		`INSERT INTO cvars (cvar_key, cvar_value_int, cvar_value_string, cvar_main_type, cvar_title, cvar_description, cvar_category, cvar_ordinal)
+		 VALUES (?, ?, NULLIF(?, ''), ?, ?, ?, ?, ?)
+		 ON DUPLICATE KEY UPDATE
+		   cvar_title = VALUES(cvar_title),
+		   cvar_description = VALUES(cvar_description),
+		   cvar_category = VALUES(cvar_category),
+		   cvar_ordinal = VALUES(cvar_ordinal)`,
+		row.Key, row.ValueInt, row.ValueString, row.MainType, row.Title, row.Description, row.Category, row.Ordinal)
 	return err
 }
 
