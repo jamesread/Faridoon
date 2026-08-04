@@ -16,7 +16,6 @@ import { initState, loadInit } from '../composables/useInit'
 import { client } from '../composables/client'
 
 const router = useRouter()
-const quickSearchRef = ref(null)
 const siteTitle = computed(() => initState.siteTitle || 'Faridoon')
 const appVersion = computed(() => initState.version || 'development')
 const auth = computed(() => initState.user)
@@ -141,36 +140,28 @@ function truncateQuote(content, max = 120) {
   return `${text.slice(0, max)}…`
 }
 
-async function onQuoteSearch(query) {
+async function fetchQuoteResults(query, { signal } = {}) {
   const q = String(query || '').trim()
-  if (!quickSearchRef.value) {
-    return
-  }
   if (!q) {
-    quickSearchRef.value.clearItems()
-    return
+    return []
   }
-  try {
-    const res = await client.listQuotes({
+  const res = await client.listQuotes(
+    {
       query: q,
       page: 1,
       order: 'latest',
-    })
-    const items = (res.quotes || []).map((quote) => ({
-      id: `quote-${quote.id}`,
-      title: `#${quote.id}`,
-      description: truncateQuote(quote.content),
-      // Keep client-side QuickSearch filter from hiding server matches.
-      match: q,
-      category: 'Quote',
-      icon: QuoteDownIcon,
-      type: 'callback',
-      callback: () => router.push({ name: 'quote-show', params: { id: String(quote.id) } }),
-    }))
-    quickSearchRef.value.setItems(items)
-  } catch {
-    quickSearchRef.value.clearItems()
-  }
+    },
+    signal ? { signal } : undefined,
+  )
+  return (res.quotes || []).map((quote) => ({
+    id: `quote-${quote.id}`,
+    title: `#${quote.id}`,
+    description: truncateQuote(quote.content),
+    category: 'Quote',
+    icon: QuoteDownIcon,
+    type: 'callback',
+    callback: () => router.push({ name: 'quote-show', params: { id: String(quote.id) } }),
+  }))
 }
 
 defineExpose({ loadInit })
@@ -190,12 +181,10 @@ defineExpose({ loadInit })
   >
     <template #toolbar>
       <QuickSearch
-        ref="quickSearchRef"
         placeholder="Search quotes..."
         :auto-import-routes="false"
         :max-results="15"
-        :search-fields="['match', 'title', 'description']"
-        @search="onQuoteSearch"
+        :fetch-results="fetchQuoteResults"
       />
     </template>
     <template #user-info>

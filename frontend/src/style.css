@@ -1,5 +1,12 @@
 @import 'picocrank/styles.css';
 
+main {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 768px;
+  margin-inline: auto;
+}
+
 .quote {
   margin-bottom: 1.5rem;
 }
@@ -186,46 +193,4 @@ form.form-stack input:not([type="checkbox"]) {
 
 .quote-actions {
   margin-top: 0.75rem;
-}
-
-.settings-form {
-  display: contents;
-}
-
-.settings-cvar {
-  padding-bottom: 1.25rem;
-  margin-bottom: 1.25rem;
-  border-bottom: 1px solid color-mix(in srgb, currentColor 15%, transparent);
-}
-
-.settings-cvar:last-of-type {
-  border-bottom: 0;
-  margin-bottom: 0;
-  padding-bottom: 0;
-}
-
-.settings-cvar > label,
-.settings-cvar-bool {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.5rem;
-}
-
-.settings-cvar-bool > label {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.settings-cvar-description {
-  opacity: 0.7;
-  font-size: 0.9em;
-  font-weight: normal;
-}
-
-.settings-cvar input:not([type="checkbox"]) {
-  width: 100%;
-  box-sizing: border-box;
 }
