@@ -62,15 +62,10 @@
       </cc:Work>
     </rdf:RDF>
   </metadata>
-  <text
-     xml:space="preserve"
-     style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:266.667px;line-height:1;font-family:'Droid Sans Armenian';-inkscape-font-specification:'Droid Sans Armenian';text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;stroke-width:9.54285;stroke-dasharray:none"
-     x="173.55933"
-     y="290.13184"
+  <path
+     style="font-size:266.667px;line-height:1;font-family:'Open Sans';-inkscape-font-specification:'Open Sans';text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;stroke-width:9.54285"
+     d="m 185.95933,202.93173 -2.13334,-4.26667 v -31.20004 q 0,-30.6667 6.13334,-49.06673 6.40001,-18.400019 20.53336,-26.400029 14.13335,-8.266677 37.86671,-8.266677 v 26.666696 q -14.40001,0 -21.33336,4.26668 -6.93334,4 -9.06667,11.46668 -2.13334,7.2 -2.13334,17.06668 h 32.53337 v 59.73341 z m -85.06677,0 -2.133339,-4.26667 v -31.20004 q 0,-30.6667 6.133339,-49.06673 6.40001,-18.400019 20.53336,-26.400029 14.40002,-8.266677 37.86671,-8.266677 v 26.666696 q -14.40001,0 -21.33336,4.26668 -6.93334,4 -9.06667,11.46668 -2.13334,7.2 -2.13334,17.06668 h 32.53337 v 59.73341 z"
      id="text1"
-     transform="scale(0.96634201,1.0348303)"><tspan
-       id="tspan1"
-       x="173.55933"
-       y="290.13184"
-       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:266.667px;line-height:1;font-family:'Open Sans';-inkscape-font-specification:'Open Sans';stroke-width:9.54285;stroke-dasharray:none">🙶</tspan></text>
+     transform="scale(0.96634201,1.0348303)"
+     aria-label="🙶" />
 </svg>
