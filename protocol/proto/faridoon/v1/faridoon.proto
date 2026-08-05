@@ -231,7 +231,7 @@ message RevokePermissionRequest {
 message Webhook {
   int32 id = 1;
   string url = 2;
-  string event = 3;
+  repeated string events = 3;
   bool enabled = 4;
   string created = 5;
   string updated = 6;
@@ -247,7 +247,7 @@ message ListWebhooksResponse {
 message CreateWebhookRequest {
   string url = 1;
   string secret = 2;
-  string event = 3;
+  repeated string events = 3;
   bool enabled = 4;
 }
 
@@ -259,7 +259,7 @@ message UpdateWebhookRequest {
   int32 id = 1;
   string url = 2;
   string secret = 3; // empty keeps existing
-  string event = 4;
+  repeated string events = 4; // full replacement set
   bool enabled = 5;
 }
 

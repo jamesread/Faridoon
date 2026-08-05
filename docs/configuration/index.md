@@ -63,6 +63,39 @@ Default groups: **Admins** (id 1) have `SUPERUSER`; **Users** (id 2) have no pri
 
 The first registered user joins Admins. Later registrations join Users. Rejecting a pending quote permanently deletes it. The last remaining admin cannot be demoted, deleted, or stripped of `SUPERUSER`.
 
+## Webhooks
+
+Admins configure outbound HTTP callbacks at **Account → Webhooks** (`/admin/webhooks`). Each target has a URL, signing secret, enabled flag, and zero or more subscribed events from a code-defined catalog. Secrets are write-only (never returned by the API). Disabled targets and targets without a matching event subscription are skipped at delivery.
+
+### Supported events
+
+| Event | When |
+|-------|------|
+| `approval.requested` | A quote is created pending approval |
+
+### Payload (`approval.requested`)
+
+```json
+{
+  "event": "approval.requested",
+  "timestamp": "2026-08-05T13:52:00Z",
+  "quote": {
+    "id": 42,
+    "content": "...",
+    "created": "2026-08-05 13:51:00",
+    "approval": 0
+  }
+}
+```
+
+### Headers and signature
+
+- `Content-Type: application/json`
+- `X-Faridoon-Event: <event name>`
+- `X-Faridoon-Signature: sha256=<hex>` — HMAC-SHA256 of the raw JSON body using the target secret
+
+Consumers verify by recomputing HMAC-SHA256 over the request body with the shared secret and comparing to the hex after `sha256=`. Delivery is fire-and-forget (short HTTP timeout); failures do not roll back the user action.
+
 ## Auth (`auth`)
 
 httpauthshim session settings. Sample keys:

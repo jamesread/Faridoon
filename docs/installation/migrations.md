@@ -19,4 +19,4 @@ sql-migrate up
 
 Set `DB_DRIVER` if needed (default `mysql`). sql-migrate expects `DB_HOST`, `DB_USER`, `DB_PASS`, and `DB_NAME` (the entrypoint maps Laravel-style aliases when present).
 
-Current required migration id: `12.quotes-content-fulltext.sql` (FULLTEXT index on `quotes.content` for search; earlier migrations include cvar category/ordinal, cvar title/description, the cvars table, quote submitter columns, header links, audit logs, webhooks and password column width).
+Current required migration id: `13.webhook-targets-events.sql` (splits legacy `webhooks` into `webhook_targets` + `webhook_events`; earlier migrations include quotes FULLTEXT search, cvar category/ordinal, cvar title/description, the cvars table, quote submitter columns, header links, audit logs, and password column width).

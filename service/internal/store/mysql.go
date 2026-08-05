@@ -60,12 +60,12 @@ type GroupPermissionRow struct {
 	PermissionID int
 }
 
-type WebhookRow struct {
+type WebhookTargetRow struct {
 	URL     string
-	Event   string
 	Secret  string
 	Created string
 	Updated string
+	Events  []string
 	ID      int
 	Enabled bool
 }
@@ -129,12 +129,12 @@ type Store interface {
 	ListPermissions(ctx context.Context) ([]PermissionRow, error)
 	GrantPermission(ctx context.Context, groupID, permissionID int) error
 	RevokePermission(ctx context.Context, groupID, permissionID int) error
-	ListWebhooks(ctx context.Context) ([]WebhookRow, error)
-	FindWebhook(ctx context.Context, id int) (*WebhookRow, error)
-	EnabledWebhooksForEvent(ctx context.Context, event string) ([]WebhookRow, error)
-	CreateWebhook(ctx context.Context, url, secret, event string, enabled bool) (int, error)
-	UpdateWebhook(ctx context.Context, id int, fields map[string]any) error
-	DeleteWebhook(ctx context.Context, id int) error
+	ListWebhookTargets(ctx context.Context) ([]WebhookTargetRow, error)
+	FindWebhookTarget(ctx context.Context, id int) (*WebhookTargetRow, error)
+	EnabledTargetsForEvent(ctx context.Context, event string) ([]WebhookTargetRow, error)
+	CreateWebhookTarget(ctx context.Context, url, secret string, events []string, enabled bool) (int, error)
+	UpdateWebhookTarget(ctx context.Context, id int, url, secret string, events []string, enabled bool, clearSecret bool) error
+	DeleteWebhookTarget(ctx context.Context, id int) error
 	InsertLog(ctx context.Context, entry LogEntry) error
 	ListLogs(ctx context.Context, page, pageSize int) ([]LogEntry, int, error)
 	ListHeaderLinks(ctx context.Context) ([]HeaderLinkRow, error)
@@ -768,120 +768,189 @@ func (m *MySQL) RevokePermission(ctx context.Context, groupID, permissionID int)
 	return err
 }
 
-func (m *MySQL) ListWebhooks(ctx context.Context) ([]WebhookRow, error) {
-	rows, err := m.db.QueryContext(ctx, webhookSelectSQL()+" ORDER BY id")
+func webhookTargetSelectSQL() string {
+	return "SELECT id, url, secret, enabled," +
+		" COALESCE(DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s'), '')," +
+		" COALESCE(DATE_FORMAT(updated, '%Y-%m-%d %H:%i:%s'), '')" +
+		" FROM webhook_targets"
+}
+
+func (m *MySQL) ListWebhookTargets(ctx context.Context) ([]WebhookTargetRow, error) {
+	rows, err := m.db.QueryContext(ctx, webhookTargetSelectSQL()+" ORDER BY id")
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = rows.Close() }()
-	return scanWebhooks(rows)
+	targets, err := scanWebhookTargets(rows)
+	if err != nil {
+		return nil, err
+	}
+	for i := range targets {
+		events, loadErr := m.loadWebhookEvents(ctx, targets[i].ID)
+		if loadErr != nil {
+			return nil, loadErr
+		}
+		targets[i].Events = events
+	}
+	return targets, nil
 }
 
-func webhookSelectSQL() string {
-	return "SELECT id, url, " + colEvent + ", secret, enabled," +
-		" COALESCE(DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s'), '')," +
-		" COALESCE(DATE_FORMAT(updated, '%Y-%m-%d %H:%i:%s'), '')" +
-		" FROM webhooks"
-}
-
-func (m *MySQL) FindWebhook(ctx context.Context, id int) (*WebhookRow, error) {
-	row := m.db.QueryRowContext(ctx, webhookSelectSQL()+" WHERE id = ?", id)
-	w, err := scanWebhook(row)
+func (m *MySQL) FindWebhookTarget(ctx context.Context, id int) (*WebhookTargetRow, error) {
+	row := m.db.QueryRowContext(ctx, webhookTargetSelectSQL()+" WHERE id = ?", id)
+	w, err := scanWebhookTarget(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
-	return w, err
+	if err != nil {
+		return nil, err
+	}
+	events, loadErr := m.loadWebhookEvents(ctx, w.ID)
+	if loadErr != nil {
+		return nil, loadErr
+	}
+	w.Events = events
+	return w, nil
 }
 
-func (m *MySQL) EnabledWebhooksForEvent(ctx context.Context, event string) ([]WebhookRow, error) {
-	rows, err := m.db.QueryContext(ctx, webhookSelectSQL()+" WHERE "+colEvent+" = ? AND enabled = 1", event)
+func (m *MySQL) EnabledTargetsForEvent(ctx context.Context, event string) ([]WebhookTargetRow, error) {
+	q := "SELECT t.id, t.url, t.secret, t.enabled," +
+		" COALESCE(DATE_FORMAT(t.created, '%Y-%m-%d %H:%i:%s'), '')," +
+		" COALESCE(DATE_FORMAT(t.updated, '%Y-%m-%d %H:%i:%s'), '')" +
+		" FROM webhook_targets t" +
+		" INNER JOIN webhook_events e ON e.webhook_target_id = t.id" +
+		" WHERE e." + colEvent + " = ? AND t.enabled = 1"
+	rows, err := m.db.QueryContext(ctx, q, event)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = rows.Close() }()
-	return scanWebhooks(rows)
+	return scanWebhookTargets(rows)
 }
 
-func (m *MySQL) CreateWebhook(ctx context.Context, url, secret, event string, enabled bool) (int, error) {
-	en := 0
-	if enabled {
-		en = 1
-	}
-	now := time.Now()
-	res, err := m.db.ExecContext(ctx,
-		"INSERT INTO webhooks (url, secret, "+colEvent+", enabled, created, updated) VALUES (?, ?, ?, ?, ?, ?)",
-		url, secret, event, en, now, now)
+func (m *MySQL) CreateWebhookTarget(ctx context.Context, url, secret string, events []string, enabled bool) (int, error) {
+	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return 0, err
 	}
-	id, err := res.LastInsertId()
-	return int(id), err
+	defer func() { _ = tx.Rollback() }()
+	id, err := insertWebhookTargetTx(ctx, tx, url, secret, events, enabled)
+	if err != nil {
+		return 0, err
+	}
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	return id, nil
 }
 
-func applyWebhookStringFields(cur *WebhookRow, fields map[string]any) {
-	if u, ok := fields["url"].(string); ok {
-		cur.URL = u
+func insertWebhookTargetTx(ctx context.Context, tx *sql.Tx, url, secret string, events []string, enabled bool) (int, error) {
+	now := time.Now()
+	res, err := tx.ExecContext(ctx,
+		`INSERT INTO webhook_targets (url, secret, enabled, created, updated) VALUES (?, ?, ?, ?, ?)`,
+		url, secret, boolToTinyInt(enabled), now, now)
+	if err != nil {
+		return 0, err
 	}
-	if s, ok := fields["secret"].(string); ok {
-		cur.Secret = s
+	lid, err := res.LastInsertId()
+	if err != nil {
+		return 0, err
 	}
-	if e, ok := fields["event"].(string); ok {
-		cur.Event = e
+	if err := insertWebhookEventsTx(ctx, tx, int(lid), events); err != nil {
+		return 0, err
 	}
+	return int(lid), nil
 }
 
-func applyWebhookEnabled(cur *WebhookRow, fields map[string]any) {
-	if en, ok := fields["enabled"].(int); ok {
-		cur.Enabled = en == 1
-		return
+func (m *MySQL) UpdateWebhookTarget(ctx context.Context, id int, url, secret string, events []string, enabled bool, clearSecret bool) error {
+	cur, err := m.FindWebhookTarget(ctx, id)
+	if err != nil || cur == nil {
+		return err
 	}
-	if en, ok := fields["enabled"].(bool); ok {
-		cur.Enabled = en
-	}
-}
-
-func (m *MySQL) UpdateWebhook(ctx context.Context, id int, fields map[string]any) error {
-	if len(fields) == 0 {
-		return nil
-	}
-	cur, err := m.FindWebhook(ctx, id)
+	applyWebhookTargetPatch(cur, url, secret, clearSecret)
+	tx, err := m.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
-	if cur == nil {
-		return nil
+	defer func() { _ = tx.Rollback() }()
+	if err := writeWebhookTargetTx(ctx, tx, id, cur.URL, cur.Secret, enabled, events); err != nil {
+		return err
 	}
-	applyWebhookStringFields(cur, fields)
-	applyWebhookEnabled(cur, fields)
-	en := 0
-	if cur.Enabled {
-		en = 1
+	return tx.Commit()
+}
+
+func applyWebhookTargetPatch(cur *WebhookTargetRow, url, secret string, clearSecret bool) {
+	if url != "" {
+		cur.URL = url
 	}
-	_, err = m.db.ExecContext(ctx,
-		"UPDATE webhooks SET url = ?, secret = ?, "+colEvent+" = ?, enabled = ?, updated = ? WHERE id = ? LIMIT 1",
-		cur.URL, cur.Secret, cur.Event, en, time.Now(), id)
+	if !clearSecret && secret != "" {
+		cur.Secret = secret
+	}
+}
+
+func writeWebhookTargetTx(ctx context.Context, tx *sql.Tx, id int, url, secret string, enabled bool, events []string) error {
+	_, err := tx.ExecContext(ctx,
+		`UPDATE webhook_targets SET url = ?, secret = ?, enabled = ?, updated = ? WHERE id = ? LIMIT 1`,
+		url, secret, boolToTinyInt(enabled), time.Now(), id)
+	if err != nil {
+		return err
+	}
+	return replaceWebhookEventsTx(ctx, tx, id, events)
+}
+
+func replaceWebhookEventsTx(ctx context.Context, tx *sql.Tx, targetID int, events []string) error {
+	if _, err := tx.ExecContext(ctx, `DELETE FROM webhook_events WHERE webhook_target_id = ?`, targetID); err != nil {
+		return err
+	}
+	return insertWebhookEventsTx(ctx, tx, targetID, events)
+}
+
+func (m *MySQL) DeleteWebhookTarget(ctx context.Context, id int) error {
+	_, err := m.db.ExecContext(ctx, `DELETE FROM webhook_targets WHERE id = ? LIMIT 1`, id)
 	return err
 }
 
-func (m *MySQL) DeleteWebhook(ctx context.Context, id int) error {
-	_, err := m.db.ExecContext(ctx, `DELETE FROM webhooks WHERE id = ? LIMIT 1`, id)
-	return err
+func (m *MySQL) loadWebhookEvents(ctx context.Context, targetID int) ([]string, error) {
+	rows, err := m.db.QueryContext(ctx,
+		"SELECT "+colEvent+" FROM webhook_events WHERE webhook_target_id = ? ORDER BY "+colEvent, targetID)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var events []string
+	for rows.Next() {
+		var e string
+		if err := rows.Scan(&e); err != nil {
+			return nil, err
+		}
+		events = append(events, e)
+	}
+	return events, nil
 }
 
-func scanWebhook(s interface{ Scan(...any) error }) (*WebhookRow, error) {
-	var w WebhookRow
+func insertWebhookEventsTx(ctx context.Context, tx *sql.Tx, targetID int, events []string) error {
+	for _, e := range events {
+		if _, err := tx.ExecContext(ctx,
+			"INSERT INTO webhook_events (webhook_target_id, "+colEvent+") VALUES (?, ?)", targetID, e); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func scanWebhookTarget(s interface{ Scan(...any) error }) (*WebhookTargetRow, error) {
+	var w WebhookTargetRow
 	var enabled int
-	if err := s.Scan(&w.ID, &w.URL, &w.Event, &w.Secret, &enabled, &w.Created, &w.Updated); err != nil {
+	if err := s.Scan(&w.ID, &w.URL, &w.Secret, &enabled, &w.Created, &w.Updated); err != nil {
 		return nil, err
 	}
 	w.Enabled = enabled == 1
 	return &w, nil
 }
 
-func scanWebhooks(rows *sql.Rows) ([]WebhookRow, error) {
-	var out []WebhookRow
+func scanWebhookTargets(rows *sql.Rows) ([]WebhookTargetRow, error) {
+	var out []WebhookTargetRow
 	for rows.Next() {
-		w, err := scanWebhook(rows)
+		w, err := scanWebhookTarget(rows)
 		if err != nil {
 			return nil, err
 		}

@@ -28,6 +28,23 @@ func NormalizeEvent(event string) (string, error) {
 	return "", fmt.Errorf("unsupported webhook event")
 }
 
+func NormalizeEvents(events []string) ([]string, error) {
+	seen := map[string]struct{}{}
+	var out []string
+	for _, raw := range events {
+		e, err := NormalizeEvent(raw)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := seen[e]; ok {
+			continue
+		}
+		seen[e] = struct{}{}
+		out = append(out, e)
+	}
+	return out, nil
+}
+
 func NormalizeURL(raw string) (string, error) {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
@@ -76,7 +93,7 @@ func (d *Dispatcher) DispatchApprovalRequested(ctx context.Context, q *store.Quo
 	}
 }
 
-func (d *Dispatcher) approvalPayload(ctx context.Context, q *store.QuoteRow) ([]byte, []store.WebhookRow) {
+func (d *Dispatcher) approvalPayload(ctx context.Context, q *store.QuoteRow) ([]byte, []store.WebhookTargetRow) {
 	payload := map[string]any{
 		"event":     "approval.requested",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
@@ -91,7 +108,7 @@ func (d *Dispatcher) approvalPayload(ctx context.Context, q *store.QuoteRow) ([]
 	if err != nil {
 		return nil, nil
 	}
-	hooks, err := d.Store.EnabledWebhooksForEvent(ctx, "approval.requested")
+	hooks, err := d.Store.EnabledTargetsForEvent(ctx, "approval.requested")
 	if err != nil {
 		return nil, nil
 	}
@@ -105,7 +122,7 @@ func (d *Dispatcher) httpClient() *http.Client {
 	return &http.Client{Timeout: 2 * time.Second}
 }
 
-func (d *Dispatcher) postWebhook(ctx context.Context, client *http.Client, wh store.WebhookRow, body []byte) {
+func (d *Dispatcher) postWebhook(ctx context.Context, client *http.Client, wh store.WebhookTargetRow, body []byte) {
 	if _, err := NormalizeURL(wh.URL); err != nil {
 		return
 	}

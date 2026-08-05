@@ -397,37 +397,30 @@ func (s *FaridoonServer) ListWebhooks(ctx context.Context, _ *connect.Request[fa
 	if _, err := s.requireAdmin(ctx); err != nil {
 		return nil, err
 	}
-	rows, err := s.store.ListWebhooks(ctx)
+	rows, err := s.store.ListWebhookTargets(ctx)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
 	out := &faridoonv1.ListWebhooksResponse{Events: webhook.SupportedEvents}
 	for _, w := range rows {
-		out.Webhooks = append(out.Webhooks, &faridoonv1.Webhook{
-			Id: int32(w.ID), Url: w.URL, Event: w.Event, Enabled: w.Enabled,
-			Created: w.Created, Updated: w.Updated,
-		})
+		out.Webhooks = append(out.Webhooks, toProtoWebhook(&w))
 	}
 	return connect.NewResponse(out), nil
 }
 
-func validateCreateWebhookInput(req *faridoonv1.CreateWebhookRequest) (url, event string, err error) {
+func validateCreateWebhookInput(req *faridoonv1.CreateWebhookRequest) (url string, events []string, err error) {
 	url, urlErr := webhook.NormalizeURL(req.Url)
 	if urlErr != nil {
-		return "", "", urlErr
+		return "", nil, urlErr
 	}
-	event = req.Event
-	if event == "" {
-		event = "approval.requested"
-	}
-	event, eventErr := webhook.NormalizeEvent(event)
+	events, eventErr := webhook.NormalizeEvents(req.Events)
 	if eventErr != nil {
-		return "", "", eventErr
+		return "", nil, eventErr
 	}
 	if strings.TrimSpace(req.Secret) == "" {
-		return "", "", fmt.Errorf("secret required")
+		return "", nil, fmt.Errorf("secret required")
 	}
-	return url, event, nil
+	return url, events, nil
 }
 
 func (s *FaridoonServer) CreateWebhook(ctx context.Context, req *connect.Request[faridoonv1.CreateWebhookRequest]) (*connect.Response[faridoonv1.CreateWebhookResponse], error) {
@@ -435,80 +428,49 @@ func (s *FaridoonServer) CreateWebhook(ctx context.Context, req *connect.Request
 	if err != nil {
 		return nil, err
 	}
-	url, event, valErr := validateCreateWebhookInput(req.Msg)
+	url, events, valErr := validateCreateWebhookInput(req.Msg)
 	if valErr != nil {
 		return nil, connect.NewError(connect.CodeInvalidArgument, valErr)
 	}
-	id, err := s.store.CreateWebhook(ctx, url, req.Msg.Secret, event, req.Msg.Enabled)
+	id, err := s.store.CreateWebhookTarget(ctx, url, req.Msg.Secret, events, req.Msg.Enabled)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
-	s.audit(ctx, su, "webhook.create", "webhook", id, event)
-	w, _ := s.store.FindWebhook(ctx, id)
+	s.audit(ctx, su, "webhook.create", "webhook", id, strings.Join(events, ","))
+	w, _ := s.store.FindWebhookTarget(ctx, id)
 	return connect.NewResponse(&faridoonv1.CreateWebhookResponse{
-		Webhook: &faridoonv1.Webhook{Id: int32(w.ID), Url: w.URL, Event: w.Event, Enabled: w.Enabled, Created: w.Created, Updated: w.Updated},
+		Webhook: toProtoWebhook(w),
 	}), nil
 }
 
-func applyWebhookURLField(fields map[string]any, rawURL string) error {
-	if rawURL == "" {
+func toProtoWebhook(w *store.WebhookTargetRow) *faridoonv1.Webhook {
+	if w == nil {
 		return nil
 	}
-	url, urlErr := webhook.NormalizeURL(rawURL)
-	if urlErr != nil {
-		return urlErr
-	}
-	fields["url"] = url
-	return nil
-}
-
-func applyWebhookEventField(fields map[string]any, rawEvent string) error {
-	if rawEvent == "" {
-		return nil
-	}
-	event, eventErr := webhook.NormalizeEvent(rawEvent)
-	if eventErr != nil {
-		return eventErr
-	}
-	fields["event"] = event
-	return nil
-}
-
-func webhookEnabledValue(enabled bool) int {
-	if enabled {
-		return 1
-	}
-	return 0
-}
-
-func buildWebhookFields(req *faridoonv1.UpdateWebhookRequest) (map[string]any, error) {
-	fields := map[string]any{}
-	if urlErr := applyWebhookURLField(fields, req.Url); urlErr != nil {
-		return nil, urlErr
-	}
-	if req.Secret != "" {
-		fields["secret"] = req.Secret
-	}
-	if eventErr := applyWebhookEventField(fields, req.Event); eventErr != nil {
-		return nil, eventErr
-	}
-	fields["enabled"] = webhookEnabledValue(req.Enabled)
-	return fields, nil
-}
-
-func toProtoWebhook(w *store.WebhookRow) *faridoonv1.Webhook {
 	return &faridoonv1.Webhook{
-		Id: int32(w.ID), Url: w.URL, Event: w.Event, Enabled: w.Enabled,
+		Id: int32(w.ID), Url: w.URL, Events: append([]string(nil), w.Events...), Enabled: w.Enabled,
 		Created: w.Created, Updated: w.Updated,
 	}
 }
 
 func (s *FaridoonServer) findWebhookProto(ctx context.Context, id int) (*faridoonv1.Webhook, error) {
-	w, findErr := s.store.FindWebhook(ctx, id)
+	w, findErr := s.store.FindWebhookTarget(ctx, id)
 	if findErr != nil || w == nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("webhook not found"))
 	}
 	return toProtoWebhook(w), nil
+}
+
+func validateUpdateWebhookInput(req *faridoonv1.UpdateWebhookRequest) (url string, events []string, err error) {
+	url = req.Url
+	if url != "" {
+		url, err = webhook.NormalizeURL(url)
+		if err != nil {
+			return "", nil, err
+		}
+	}
+	events, err = webhook.NormalizeEvents(req.Events)
+	return url, events, err
 }
 
 func (s *FaridoonServer) UpdateWebhook(ctx context.Context, req *connect.Request[faridoonv1.UpdateWebhookRequest]) (*connect.Response[faridoonv1.Webhook], error) {
@@ -516,14 +478,14 @@ func (s *FaridoonServer) UpdateWebhook(ctx context.Context, req *connect.Request
 	if err != nil {
 		return nil, err
 	}
-	fields, buildErr := buildWebhookFields(req.Msg)
-	if buildErr != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, buildErr)
+	url, events, valErr := validateUpdateWebhookInput(req.Msg)
+	if valErr != nil {
+		return nil, connect.NewError(connect.CodeInvalidArgument, valErr)
 	}
-	if updErr := s.store.UpdateWebhook(ctx, int(req.Msg.Id), fields); updErr != nil {
+	if updErr := s.store.UpdateWebhookTarget(ctx, int(req.Msg.Id), url, req.Msg.Secret, events, req.Msg.Enabled, false); updErr != nil {
 		return nil, connect.NewError(connect.CodeInternal, updErr)
 	}
-	s.audit(ctx, su, "webhook.update", "webhook", int(req.Msg.Id), "")
+	s.audit(ctx, su, "webhook.update", "webhook", int(req.Msg.Id), strings.Join(events, ","))
 	proto, findErr := s.findWebhookProto(ctx, int(req.Msg.Id))
 	if findErr != nil {
 		return nil, findErr
@@ -536,7 +498,7 @@ func (s *FaridoonServer) DeleteWebhook(ctx context.Context, req *connect.Request
 	if err != nil {
 		return nil, err
 	}
-	if delErr := s.store.DeleteWebhook(ctx, int(req.Msg.Id)); delErr != nil {
+	if delErr := s.store.DeleteWebhookTarget(ctx, int(req.Msg.Id)); delErr != nil {
 		return nil, connect.NewError(connect.CodeInternal, delErr)
 	}
 	s.audit(ctx, su, "webhook.delete", "webhook", int(req.Msg.Id), "")
