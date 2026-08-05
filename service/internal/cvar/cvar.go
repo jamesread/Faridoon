@@ -14,6 +14,7 @@ const (
 	KeyEnableGuestAdd           = "enable_guest_add"
 	KeyGuestAddRequireApproval  = "guest_add_require_approval"
 	KeyEnableSyntaxHighlighting = "enable_syntax_highlighting"
+	KeyEnablePwaPrompt          = "enable_pwa_prompt" // #nosec G101 #nosecret
 
 	DefaultQuotesPerPage = 5
 	MaxQuotesPerPage     = 127
@@ -55,6 +56,11 @@ func Defaults(siteTitle string) []Def {
 			Key: KeyEnableSyntaxHighlighting, MainType: TypeBool, ValueInt: 0,
 			Title: "Enable syntax highlighting", Description: "Show the syntax highlighting field when adding or editing quotes.",
 			Category: CategoryFeatures, Ordinal: 40,
+		},
+		{
+			Key: KeyEnablePwaPrompt, MainType: TypeBool, ValueInt: 0,
+			Title: "Show PWA install prompt", Description: "Show a banner inviting users to install Faridoon as an app when supported by the browser.",
+			Category: CategoryFeatures, Ordinal: 45,
 		},
 		{
 			Key: KeyEnableRegistration, MainType: TypeBool, ValueInt: 1,

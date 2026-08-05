@@ -10,6 +10,7 @@ const state = reactive({
     registrationEnabled: true,
     guestAddEnabled: true,
     syntaxHighlightingEnabled: false,
+    showPwaPrompt: false,
   },
   user: null,
   pendingApprovals: 0,
@@ -28,6 +29,7 @@ export async function loadInit() {
       registrationEnabled: !!res.features?.registrationEnabled,
       guestAddEnabled: !!res.features?.guestAddEnabled,
       syntaxHighlightingEnabled: !!res.features?.syntaxHighlightingEnabled,
+      showPwaPrompt: !!res.features?.showPwaPrompt,
     }
     state.user = res.user || null
     state.pendingApprovals = res.pendingApprovals || 0

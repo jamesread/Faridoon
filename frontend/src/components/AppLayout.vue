@@ -132,6 +132,10 @@ function goHome() {
   router.push({ name: 'quotes' })
 }
 
+function goAccount() {
+  router.push({ name: 'account' })
+}
+
 function truncateQuote(content, max = 120) {
   const text = String(content || '').replace(/\s+/g, ' ').trim()
   if (text.length <= max) {
@@ -178,6 +182,7 @@ defineExpose({ loadInit })
     :navigation="navigation"
     :username="auth?.username || ''"
     @logo-click="goHome"
+    @user-click="goAccount"
   >
     <template #toolbar>
       <QuickSearch
@@ -187,10 +192,12 @@ defineExpose({ loadInit })
         :fetch-results="fetchQuoteResults"
       />
     </template>
-    <template #user-info>
+    <template
+      v-if="!auth"
+      #user-info
+    >
       <div class="user-info">
-        <router-link v-if="auth" to="/account">{{ auth.username }}</router-link>
-        <router-link v-else to="/login">Login</router-link>
+        <router-link to="/login">Login</router-link>
       </div>
     </template>
   </Header>

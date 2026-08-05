@@ -1,6 +1,9 @@
-.PHONY: all generate build test lint codestyle service-codestyle install setup service frontend integration-test docs clean release docker-amd64 docker-arm64 docker-manifest
+.PHONY: all generate build test lint codestyle service-codestyle install setup service frontend integration-test docs clean release docker-amd64 docker-arm64 docker-manifest migrate
 
 all: build
+
+migrate:
+	$(MAKE) -C database/mysql
 
 generate:
 	cd protocol/proto && buf generate --template ../buf.gen.yaml

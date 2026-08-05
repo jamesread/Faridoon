@@ -40,6 +40,7 @@ func (s *FaridoonServer) featureFlags(ctx context.Context) *faridoonv1.Features 
 		RegistrationEnabled:       s.registrationEnabled(ctx),
 		GuestAddEnabled:           s.guestAddEnabled(ctx),
 		SyntaxHighlightingEnabled: s.syntaxHighlightingEnabled(ctx),
+		ShowPwaPrompt:             s.showPwaPrompt(ctx),
 	}
 }
 

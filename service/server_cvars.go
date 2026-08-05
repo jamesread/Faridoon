@@ -77,6 +77,10 @@ func (s *FaridoonServer) syntaxHighlightingEnabled(ctx context.Context) bool {
 	return s.boolCvar(ctx, cvar.KeyEnableSyntaxHighlighting, false)
 }
 
+func (s *FaridoonServer) showPwaPrompt(ctx context.Context) bool {
+	return s.boolCvar(ctx, cvar.KeyEnablePwaPrompt, false)
+}
+
 func (s *FaridoonServer) quotesPerPage(ctx context.Context) int {
 	row, err := s.store.FindCvar(ctx, cvar.KeyQuotesPerPage)
 	if err != nil || row == nil || row.ValueInt < 1 {

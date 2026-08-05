@@ -13,5 +13,15 @@ fi
 if [ -n "${DB_PASSWORD:-}" ] && [ -z "${DB_PASS:-}" ]; then
   export DB_PASS="$DB_PASSWORD"
 fi
-cd /var/faridoon/database && sql-migrate up
+
+DRIVER="${DB_DRIVER:-mysql}"
+case "$DRIVER" in
+  mysql|pgsql|sqlite) ;;
+  *)
+    echo "unsupported DB_DRIVER: $DRIVER" >&2
+    exit 1
+    ;;
+esac
+
+cd "/var/faridoon/database/${DRIVER}" && sql-migrate up
 exec /usr/bin/faridoon-service "$@"

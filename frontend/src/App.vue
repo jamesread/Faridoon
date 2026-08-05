@@ -1,12 +1,17 @@
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { RouterView } from 'vue-router'
 import AppLayout from './components/AppLayout.vue'
-import { loadInit } from './composables/useInit'
+import { loadInit, useInit } from './composables/useInit'
 import { useInstallPrompt } from './composables/useInstallPrompt'
 
+const initState = useInit()
 const { isInstallable, isInstalled, promptInstall } = useInstallPrompt()
 const showInstallBanner = ref(true)
+
+const showPwaBanner = computed(() =>
+  initState.features.showPwaPrompt && isInstallable.value && !isInstalled.value && showInstallBanner.value,
+)
 
 function handleInstall() {
   promptInstall().then((accepted) => {
@@ -30,9 +35,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div :class="{ 'has-install-banner': isInstallable && !isInstalled && showInstallBanner }">
+  <div :class="{ 'has-install-banner': showPwaBanner }">
     <div
-      v-if="isInstallable && !isInstalled && showInstallBanner"
+      v-if="showPwaBanner"
       class="install-banner"
     >
       <div class="install-banner-content">

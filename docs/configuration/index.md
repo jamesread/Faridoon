@@ -24,7 +24,7 @@ These keys may be set in YAML or overridden by environment variables:
 - `database.password` / `DB_PASS` or `DB_PASSWORD`
 - `database.name` / `DB_NAME` or `DB_DATABASE`
 
-sql-migrate (on container start) expects `DB_HOST`, `DB_USER`, `DB_PASS`, and `DB_NAME`. The entrypoint maps Laravel-style names to these when needed.
+sql-migrate (on container start) expects `DB_HOST`, `DB_USER`, `DB_PASS`, and `DB_NAME`. The entrypoint maps Laravel-style names to these when needed. `DB_DRIVER` selects the migration tree under `database/` (default `mysql`; Faridoon ships MySQL only).
 
 ## Application (YAML / env)
 
@@ -49,6 +49,7 @@ Admins manage cvars at **Account → Settings** (`/admin/settings`). Missing def
 | `enable_guest_add` | bool | on | Allow logged-out users to submit quotes |
 | `guest_add_require_approval` | bool | on | Guest quotes wait for approval; do not disable on public/untrusted networks |
 | `enable_syntax_highlighting` | bool | off | Show syntax highlighting field when adding/editing quotes |
+| `enable_pwa_prompt` | bool | off | Show the PWA install banner when the browser supports it |
 
 Changing Settings reloads Init so the UI picks up new values without a process restart.
 
