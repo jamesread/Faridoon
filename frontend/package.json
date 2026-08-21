@@ -13,18 +13,18 @@
   "dependencies": {
     "@connectrpc/connect": "^2.1.2",
     "@connectrpc/connect-web": "^2.1.2",
-    "@hugeicons/core-free-icons": "^4.2.3",
-    "@hugeicons/vue": "^1.0.7",
-    "picocrank": "^1.22.0",
-    "vue": "^3.5.40",
+    "@hugeicons/core-free-icons": "^4.3.0",
+    "@hugeicons/vue": "^1.0.8",
+    "picocrank": "^1.24.0",
+    "vue": "^3.5.41",
     "vue-router": "^5.2.0"
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
     "@vitejs/plugin-vue": "^6.0.8",
     "jsdom": "^30.0.1",
-    "vite": "^8.2.0",
+    "vite": "^8.2.2",
     "vite-plugin-pwa": "^1.3.0",
-    "vitest": "^4.1.10"
+    "vitest": "^4.1.11"
   }
 }
