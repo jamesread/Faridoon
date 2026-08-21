@@ -146,22 +146,47 @@ func (s *FaridoonServer) toProtoUserRow(ctx context.Context, row *store.UserRow)
 	return s.toProtoUser(su)
 }
 
-func (s *FaridoonServer) formatQuote(q *store.QuoteRow) *faridoonv1.Quote {
+func (s *FaridoonServer) formatQuote(ctx context.Context, q *store.QuoteRow) *faridoonv1.Quote {
 	if q == nil {
 		return nil
 	}
 	f := s.formatter.Format(q.ID, q.Content, q.Created, q.VoteCount, q.Approved, q.SyntaxHighlighting)
+	lines, signatureHTML := s.formatQuoteLines(ctx, f, q.MarkdownEnabled)
 	out := &faridoonv1.Quote{
 		Id: int32(f.ID), Content: f.Content, Created: f.Created, VoteCount: int32(f.VoteCount),
-		Approved: f.Approved, SyntaxHighlighting: f.SyntaxHighlighting,
+		Approved: f.Approved, SyntaxHighlighting: f.SyntaxHighlighting, FormatStyle: f.FormatStyle,
+		SignatureAuthor: f.SignatureAuthor, SignatureAuthorHtml: signatureHTML,
+		MarkdownEnabled:   q.MarkdownEnabled,
 		SubmittedByUserId: int32(q.SubmittedByUserID), SubmittedByUsername: q.SubmittedByUsername,
-	}
-	for _, line := range f.Lines {
-		out.Lines = append(out.Lines, &faridoonv1.QuoteLine{
-			Content: line.Content, Username: line.Username, UsernameColor: int32(line.UsernameColor),
-		})
+		Lines: lines,
 	}
 	return out
+}
+
+func (s *FaridoonServer) formatQuoteLines(ctx context.Context, f quote.Formatted, markdownEnabled bool) ([]*faridoonv1.QuoteLine, string) {
+	active := markdownEnabled && s.markdownEnabled(ctx)
+	lines := make([]*faridoonv1.QuoteLine, 0, len(f.Lines))
+	for _, line := range f.Lines {
+		lines = append(lines, protoQuoteLine(line, active))
+	}
+	return lines, signatureAuthorHTML(f.SignatureAuthor, active)
+}
+
+func protoQuoteLine(line quote.Line, markdownActive bool) *faridoonv1.QuoteLine {
+	pl := &faridoonv1.QuoteLine{
+		Content: line.Content, Username: line.Username, UsernameColor: int32(line.UsernameColor),
+	}
+	if markdownActive {
+		pl.ContentHtml = quote.RenderMarkdown(line.Content, false)
+	}
+	return pl
+}
+
+func signatureAuthorHTML(author string, markdownActive bool) string {
+	if !markdownActive || author == "" {
+		return ""
+	}
+	return quote.RenderMarkdown(author, true)
 }
 
 func newSessionID() string {

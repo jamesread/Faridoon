@@ -77,6 +77,10 @@ func (s *FaridoonServer) syntaxHighlightingEnabled(ctx context.Context) bool {
 	return s.boolCvar(ctx, cvar.KeyEnableSyntaxHighlighting, false)
 }
 
+func (s *FaridoonServer) markdownEnabled(ctx context.Context) bool {
+	return s.boolCvar(ctx, cvar.KeyEnableMarkdown, false)
+}
+
 func (s *FaridoonServer) showPwaPrompt(ctx context.Context) bool {
 	return s.boolCvar(ctx, cvar.KeyEnablePwaPrompt, false)
 }

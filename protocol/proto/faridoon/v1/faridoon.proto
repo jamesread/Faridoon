@@ -12,6 +12,7 @@ message Features {
   bool guest_add_enabled = 3;
   bool syntax_highlighting_enabled = 4;
   bool show_pwa_prompt = 5;
+  bool markdown_enabled = 6;
 }
 
 message User {
@@ -29,6 +30,7 @@ message QuoteLine {
   string content = 1;
   string username = 2;
   int32 username_color = 3;
+  string content_html = 4;
 }
 
 message Quote {
@@ -41,6 +43,22 @@ message Quote {
   repeated QuoteLine lines = 7;
   int32 submitted_by_user_id = 8;
   string submitted_by_username = 9;
+  string format_style = 10;
+  string signature_author = 11;
+  bool markdown_enabled = 12;
+  string signature_author_html = 13;
+}
+
+message FormatQuoteRequest {
+  string content = 1;
+  bool markdown_enabled = 2;
+}
+
+message FormatQuoteResponse {
+  repeated QuoteLine lines = 1;
+  string format_style = 2;
+  string signature_author = 3;
+  string signature_author_html = 4;
 }
 
 message InitRequest {}
@@ -106,6 +124,7 @@ message GetQuoteResponse {
 message CreateQuoteRequest {
   string content = 1;
   string syntax_highlighting = 2;
+  bool markdown_enabled = 3;
 }
 
 message CreateQuoteResponse {
@@ -117,6 +136,7 @@ message UpdateQuoteRequest {
   int32 id = 1;
   string content = 2;
   string syntax_highlighting = 3;
+  bool markdown_enabled = 4;
 }
 
 message DeleteQuoteRequest {
@@ -378,6 +398,7 @@ service FaridoonService {
   rpc ListQuotes(ListQuotesRequest) returns (ListQuotesResponse);
   rpc GetQuote(GetQuoteRequest) returns (GetQuoteResponse);
   rpc CreateQuote(CreateQuoteRequest) returns (CreateQuoteResponse);
+  rpc FormatQuote(FormatQuoteRequest) returns (FormatQuoteResponse);
   rpc UpdateQuote(UpdateQuoteRequest) returns (Quote);
   rpc DeleteQuote(DeleteQuoteRequest) returns (google.protobuf.Empty);
   rpc VoteQuote(VoteQuoteRequest) returns (VoteQuoteResponse);

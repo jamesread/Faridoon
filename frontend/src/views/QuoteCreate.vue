@@ -2,12 +2,14 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Section from 'picocrank/vue/components/Section.vue'
+import QuoteLivePreview from '../components/QuoteLivePreview.vue'
 import { client } from '../composables/client'
 import { initState, loadInit } from '../composables/useInit'
 
 const router = useRouter()
 const content = ref('')
 const syntax = ref('')
+const markdownEnabled = ref(false)
 const error = ref('')
 const pending = ref(false)
 
@@ -17,6 +19,7 @@ async function submit() {
     const res = await client.createQuote({
       content: content.value,
       syntaxHighlighting: syntax.value,
+      markdownEnabled: markdownEnabled.value,
     })
     await loadInit()
     if (res.pendingApproval) {
@@ -42,8 +45,17 @@ async function submit() {
         Syntax highlighting
         <input v-model="syntax" type="text" />
       </label>
+      <label v-if="initState.features.markdownEnabled">
+        <input v-model="markdownEnabled" type="checkbox" />
+        Enable Markdown for this quote
+      </label>
       <p v-if="error" class="form-error">{{ error }}</p>
       <button type="submit" class="button">Add</button>
     </form>
   </Section>
+  <QuoteLivePreview
+    v-if="!pending"
+    :content="content"
+    :markdown-enabled="markdownEnabled"
+  />
 </template>

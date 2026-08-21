@@ -14,6 +14,7 @@ const (
 	KeyEnableGuestAdd           = "enable_guest_add"
 	KeyGuestAddRequireApproval  = "guest_add_require_approval"
 	KeyEnableSyntaxHighlighting = "enable_syntax_highlighting"
+	KeyEnableMarkdown           = "enable_markdown"
 	KeyEnablePwaPrompt          = "enable_pwa_prompt" // #nosec G101 #nosecret
 
 	DefaultQuotesPerPage = 5
@@ -56,6 +57,11 @@ func Defaults(siteTitle string) []Def {
 			Key: KeyEnableSyntaxHighlighting, MainType: TypeBool, ValueInt: 0,
 			Title: "Enable syntax highlighting", Description: "Show the syntax highlighting field when adding or editing quotes.",
 			Category: CategoryFeatures, Ordinal: 40,
+		},
+		{
+			Key: KeyEnableMarkdown, MainType: TypeBool, ValueInt: 0,
+			Title: "Enable Markdown", Description: "Allow quotes to opt in to Markdown formatting when adding or editing.",
+			Category: CategoryFeatures, Ordinal: 42,
 		},
 		{
 			Key: KeyEnablePwaPrompt, MainType: TypeBool, ValueInt: 0,

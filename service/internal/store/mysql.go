@@ -33,6 +33,7 @@ type QuoteRow struct {
 	Approval            int
 	SubmittedByUserID   int
 	Approved            bool
+	MarkdownEnabled     bool
 }
 
 type UserRow struct {
@@ -105,8 +106,8 @@ type Store interface {
 	CountUsersWithPrivilege(ctx context.Context, key string) (int, error)
 	CountUsersWithPrivilegeExcludingGroup(ctx context.Context, key string, groupID int) (int, error)
 	FindPermission(ctx context.Context, id int) (*PermissionRow, error)
-	CreateQuote(ctx context.Context, content string, approval int, syntax string, submittedByUserID int, submittedByUsername string) (int, error)
-	UpdateQuote(ctx context.Context, id int, content, syntax string) error
+	CreateQuote(ctx context.Context, content string, approval int, syntax string, markdownEnabled bool, submittedByUserID int, submittedByUsername string) (int, error)
+	UpdateQuote(ctx context.Context, id int, content, syntax string, markdownEnabled bool) error
 	ApproveQuote(ctx context.Context, id int) error
 	DeleteQuote(ctx context.Context, id int) error
 	VoteSum(ctx context.Context, quoteID int) (int, error)
@@ -193,7 +194,7 @@ func (m *MySQL) HasMigration(ctx context.Context, id string) (bool, error) {
 func quoteSelectSQL() string {
 	return `
 SELECT q.id, q.content, COALESCE(DATE_FORMAT(q.created, '%Y-%m-%d %H:%i:%s'), ''),
-  q.approval, COALESCE(q.syntaxHighlighting, ''), COALESCE(v.voteCount, 0),
+  q.approval, COALESCE(q.syntaxHighlighting, ''), COALESCE(q.markdown_enabled, 0), COALESCE(v.voteCount, 0),
   COALESCE(q.submitted_by_user_id, 0), COALESCE(q.submitted_by_username, '')
 FROM quotes q
 LEFT JOIN (
@@ -204,12 +205,14 @@ LEFT JOIN (
 func scanQuote(s interface{ Scan(...any) error }) (*QuoteRow, error) {
 	var q QuoteRow
 	var approval int
-	if err := s.Scan(&q.ID, &q.Content, &q.Created, &approval, &q.SyntaxHighlighting, &q.VoteCount,
+	var markdownEnabled int
+	if err := s.Scan(&q.ID, &q.Content, &q.Created, &approval, &q.SyntaxHighlighting, &markdownEnabled, &q.VoteCount,
 		&q.SubmittedByUserID, &q.SubmittedByUsername); err != nil {
 		return nil, err
 	}
 	q.Approval = approval
 	q.Approved = approval == 1
+	q.MarkdownEnabled = markdownEnabled != 0
 	return &q, nil
 }
 
@@ -294,7 +297,7 @@ func (m *MySQL) FindQuote(ctx context.Context, id int) (*QuoteRow, error) {
 func (m *MySQL) FindQuoteRaw(ctx context.Context, id int) (*QuoteRow, error) {
 	row := m.db.QueryRowContext(ctx,
 		`SELECT id, content, COALESCE(DATE_FORMAT(created, '%Y-%m-%d %H:%i:%s'), ''), approval,
-		 COALESCE(syntaxHighlighting, ''), 0, COALESCE(submitted_by_user_id, 0), COALESCE(submitted_by_username, '')
+		 COALESCE(syntaxHighlighting, ''), COALESCE(markdown_enabled, 0), 0, COALESCE(submitted_by_user_id, 0), COALESCE(submitted_by_username, '')
 		 FROM quotes WHERE id = ?`, id)
 	q, err := scanQuote(row)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -471,15 +474,19 @@ func (m *MySQL) FindPermission(ctx context.Context, id int) (*PermissionRow, err
 	return &p, nil
 }
 
-func (m *MySQL) CreateQuote(ctx context.Context, content string, approval int, syntax string, submittedByUserID int, submittedByUsername string) (int, error) {
+func (m *MySQL) CreateQuote(ctx context.Context, content string, approval int, syntax string, markdownEnabled bool, submittedByUserID int, submittedByUsername string) (int, error) {
 	var userID any
 	if submittedByUserID > 0 {
 		userID = submittedByUserID
 	}
+	markdown := 0
+	if markdownEnabled {
+		markdown = 1
+	}
 	res, err := m.db.ExecContext(ctx,
-		`INSERT INTO quotes (content, approval, syntaxHighlighting, created, submitted_by_user_id, submitted_by_username)
-		 VALUES (?, ?, NULLIF(?, ''), NOW(), ?, NULLIF(?, ''))`,
-		content, approval, syntax, userID, submittedByUsername)
+		`INSERT INTO quotes (content, approval, syntaxHighlighting, markdown_enabled, created, submitted_by_user_id, submitted_by_username)
+		 VALUES (?, ?, NULLIF(?, ''), ?, NOW(), ?, NULLIF(?, ''))`,
+		content, approval, syntax, markdown, userID, submittedByUsername)
 	if err != nil {
 		return 0, err
 	}
@@ -487,10 +494,14 @@ func (m *MySQL) CreateQuote(ctx context.Context, content string, approval int, s
 	return int(id), err
 }
 
-func (m *MySQL) UpdateQuote(ctx context.Context, id int, content, syntax string) error {
+func (m *MySQL) UpdateQuote(ctx context.Context, id int, content, syntax string, markdownEnabled bool) error {
+	markdown := 0
+	if markdownEnabled {
+		markdown = 1
+	}
 	_, err := m.db.ExecContext(ctx,
-		`UPDATE quotes SET content = ?, syntaxHighlighting = NULLIF(?, '') WHERE id = ?`,
-		content, syntax, id)
+		`UPDATE quotes SET content = ?, syntaxHighlighting = NULLIF(?, ''), markdown_enabled = ? WHERE id = ?`,
+		content, syntax, markdown, id)
 	return err
 }
 

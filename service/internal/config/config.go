@@ -28,7 +28,7 @@ type Config struct {
 }
 
 // RequiredMigration is the sql-migrate id this binary expects to be applied.
-const RequiredMigration = "13.webhook-targets-events.sql"
+const RequiredMigration = "14.quotes-markdown-enabled.sql"
 
 var configDirOverride string
 

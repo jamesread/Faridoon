@@ -41,6 +41,7 @@ func (s *FaridoonServer) featureFlags(ctx context.Context) *faridoonv1.Features 
 		GuestAddEnabled:           s.guestAddEnabled(ctx),
 		SyntaxHighlightingEnabled: s.syntaxHighlightingEnabled(ctx),
 		ShowPwaPrompt:             s.showPwaPrompt(ctx),
+		MarkdownEnabled:           s.markdownEnabled(ctx),
 	}
 }
 
@@ -237,7 +238,7 @@ func (s *FaridoonServer) ListQuotes(ctx context.Context, req *connect.Request[fa
 	}
 	totalPages := (total + perPage - 1) / perPage
 	out := &faridoonv1.ListQuotesResponse{Page: int32(page), Total: int32(total), TotalPages: int32(totalPages)}
-	out.Quotes = s.approvedQuoteProtos(rows)
+	out.Quotes = s.approvedQuoteProtos(ctx, rows)
 	return connect.NewResponse(out), nil
 }
 
@@ -258,14 +259,14 @@ func (s *FaridoonServer) listQuotesParams(ctx context.Context, msg *faridoonv1.L
 	return page, order, query, perPage
 }
 
-func (s *FaridoonServer) approvedQuoteProtos(rows []store.QuoteRow) []*faridoonv1.Quote {
+func (s *FaridoonServer) approvedQuoteProtos(ctx context.Context, rows []store.QuoteRow) []*faridoonv1.Quote {
 	out := make([]*faridoonv1.Quote, 0, len(rows))
 	for i := range rows {
 		// Defense in depth: search/list must never expose pending quotes.
 		if !rows[i].Approved {
 			continue
 		}
-		out = append(out, s.formatQuote(&rows[i]))
+		out = append(out, s.formatQuote(ctx, &rows[i]))
 	}
 	return out
 }
@@ -283,7 +284,7 @@ func (s *FaridoonServer) GetQuote(ctx context.Context, req *connect.Request[fari
 			return nil, gateErr
 		}
 	}
-	return connect.NewResponse(&faridoonv1.GetQuoteResponse{Quote: s.formatQuote(q)}), nil
+	return connect.NewResponse(&faridoonv1.GetQuoteResponse{Quote: s.formatQuote(ctx, q)}), nil
 }
 
 func (s *FaridoonServer) authorizePendingQuoteRead(ctx context.Context, q *store.QuoteRow) error {
@@ -328,7 +329,7 @@ func approvalForSubmission(su *sessionUser, guestRequireApproval bool) int {
 }
 
 func normalizeQuoteContent(raw string) (string, error) {
-	content := quote.NormalizeNewlines(quote.FixDiscordLinebreaks(strings.TrimSpace(raw)))
+	content := quote.NormalizeInput(raw)
 	if content == "" {
 		return "", fmt.Errorf("content required")
 	}
@@ -363,7 +364,8 @@ func (s *FaridoonServer) CreateQuote(ctx context.Context, req *connect.Request[f
 	}
 	approval := approvalForSubmission(su, s.guestAddRequireApproval(ctx))
 	userID, username := submitterFromSession(su)
-	id, err := s.store.CreateQuote(ctx, content, approval, req.Msg.SyntaxHighlighting, userID, username)
+	markdownEnabled := req.Msg.MarkdownEnabled && s.markdownEnabled(ctx)
+	id, err := s.store.CreateQuote(ctx, content, approval, req.Msg.SyntaxHighlighting, markdownEnabled, userID, username)
 	if err != nil {
 		return nil, connect.NewError(connect.CodeInternal, err)
 	}
@@ -371,7 +373,21 @@ func (s *FaridoonServer) CreateQuote(ctx context.Context, req *connect.Request[f
 	s.audit(ctx, su, "quote.create", "quote", id, detailf("approval=%d", approval))
 	q, _ := s.store.FindQuote(ctx, id)
 	return connect.NewResponse(&faridoonv1.CreateQuoteResponse{
-		Quote: s.formatQuote(q), PendingApproval: approval == 0,
+		Quote: s.formatQuote(ctx, q), PendingApproval: approval == 0,
+	}), nil
+}
+
+func (s *FaridoonServer) FormatQuote(ctx context.Context, req *connect.Request[faridoonv1.FormatQuoteRequest]) (*connect.Response[faridoonv1.FormatQuoteResponse], error) {
+	// NormalizeInput applies Discord paste fixup and newline normalization.
+	content := quote.NormalizeInput(req.Msg.Content)
+	markdownEnabled := req.Msg.MarkdownEnabled && s.markdownEnabled(ctx)
+	f := s.formatter.Format(0, content, "", 0, false, "")
+	lines, signatureHTML := s.formatQuoteLines(ctx, f, markdownEnabled)
+	return connect.NewResponse(&faridoonv1.FormatQuoteResponse{
+		Lines:               lines,
+		FormatStyle:         f.FormatStyle,
+		SignatureAuthor:     f.SignatureAuthor,
+		SignatureAuthorHtml: signatureHTML,
 	}), nil
 }
 
@@ -380,16 +396,25 @@ func (s *FaridoonServer) UpdateQuote(ctx context.Context, req *connect.Request[f
 	if err != nil {
 		return nil, err
 	}
-	content := quote.NormalizeNewlines(quote.FixDiscordLinebreaks(strings.TrimSpace(req.Msg.Content)))
-	if updErr := s.store.UpdateQuote(ctx, int(req.Msg.Id), content, req.Msg.SyntaxHighlighting); updErr != nil {
-		return nil, connect.NewError(connect.CodeInternal, updErr)
+	q, err := s.saveQuoteEdit(ctx, req.Msg)
+	if err != nil {
+		return nil, err
 	}
 	s.audit(ctx, su, "quote.update", "quote", int(req.Msg.Id), "")
-	q, err := s.store.FindQuote(ctx, int(req.Msg.Id))
+	return connect.NewResponse(s.formatQuote(ctx, q)), nil
+}
+
+func (s *FaridoonServer) saveQuoteEdit(ctx context.Context, msg *faridoonv1.UpdateQuoteRequest) (*store.QuoteRow, error) {
+	content := quote.NormalizeInput(strings.TrimSpace(msg.Content))
+	markdownEnabled := msg.MarkdownEnabled && s.markdownEnabled(ctx)
+	if err := s.store.UpdateQuote(ctx, int(msg.Id), content, msg.SyntaxHighlighting, markdownEnabled); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+	q, err := s.store.FindQuote(ctx, int(msg.Id))
 	if err != nil || q == nil {
 		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("quote not found"))
 	}
-	return connect.NewResponse(s.formatQuote(q)), nil
+	return q, nil
 }
 
 func (s *FaridoonServer) DeleteQuote(ctx context.Context, req *connect.Request[faridoonv1.DeleteQuoteRequest]) (*connect.Response[emptypb.Empty], error) {
@@ -474,7 +499,7 @@ func (s *FaridoonServer) ListApprovals(ctx context.Context, _ *connect.Request[f
 	}
 	out := &faridoonv1.ListApprovalsResponse{}
 	for i := range rows {
-		out.Quotes = append(out.Quotes, s.formatQuote(&rows[i]))
+		out.Quotes = append(out.Quotes, s.formatQuote(ctx, &rows[i]))
 	}
 	return connect.NewResponse(out), nil
 }

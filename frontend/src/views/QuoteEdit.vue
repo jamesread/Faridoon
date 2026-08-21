@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Section from 'picocrank/vue/components/Section.vue'
 import DangerZone from '../components/DangerZone.vue'
+import QuoteLivePreview from '../components/QuoteLivePreview.vue'
 import { client } from '../composables/client'
 import { initState } from '../composables/useInit'
 
@@ -10,12 +11,14 @@ const props = defineProps({ id: { type: [String, Number], required: true } })
 const router = useRouter()
 const content = ref('')
 const syntax = ref('')
+const markdownEnabled = ref(false)
 const error = ref('')
 
 onMounted(async () => {
   const res = await client.getQuote({ id: Number(props.id) })
   content.value = res.quote.content
   syntax.value = res.quote.syntaxHighlighting || ''
+  markdownEnabled.value = !!res.quote.markdownEnabled
 })
 
 async function save() {
@@ -25,6 +28,7 @@ async function save() {
       id: Number(props.id),
       content: content.value,
       syntaxHighlighting: syntax.value,
+      markdownEnabled: markdownEnabled.value,
     })
     router.push(`/quotes/${props.id}`)
   } catch (e) {
@@ -50,6 +54,10 @@ async function destroy() {
         Syntax highlighting
         <input v-model="syntax" type="text" />
       </label>
+      <label v-if="initState.features.markdownEnabled">
+        <input v-model="markdownEnabled" type="checkbox" />
+        Enable Markdown for this quote
+      </label>
       <p v-if="error" class="form-error">{{ error }}</p>
       <div class="quote-edit-actions">
         <button type="submit" class="button">Save</button>
@@ -57,6 +65,7 @@ async function destroy() {
       </div>
     </form>
   </Section>
+  <QuoteLivePreview :content="content" :markdown-enabled="markdownEnabled" />
   <DangerZone v-if="initState.user?.isAdmin" :title="`Delete quote #${id}`">
     <p>Permanently remove this quote.</p>
     <button type="button" class="button bad" @click="destroy">Delete</button>

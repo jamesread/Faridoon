@@ -11,7 +11,7 @@ func TestDefaults(t *testing.T) {
 	if cfg.Listen != ":8080" {
 		t.Fatalf("listen=%s", cfg.Listen)
 	}
-	if RequiredMigration != "13.webhook-targets-events.sql" {
+	if RequiredMigration != "14.quotes-markdown-enabled.sql" {
 		t.Fatalf("migration=%s", RequiredMigration)
 	}
 }

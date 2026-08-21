@@ -49,6 +49,7 @@ Admins manage cvars at **Account → Settings** (`/admin/settings`). Missing def
 | `enable_guest_add` | bool | on | Allow logged-out users to submit quotes |
 | `guest_add_require_approval` | bool | on | Guest quotes wait for approval; do not disable on public/untrusted networks |
 | `enable_syntax_highlighting` | bool | off | Show syntax highlighting field when adding/editing quotes |
+| `enable_markdown` | bool | off | Allow per-quote Markdown formatting when adding/editing quotes |
 | `enable_pwa_prompt` | bool | off | Show the PWA install banner when the browser supports it |
 
 Changing Settings reloads Init so the UI picks up new values without a process restart.

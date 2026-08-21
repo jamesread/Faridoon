@@ -35,6 +35,51 @@ main {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.quote-line-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.quote-line-content p {
+  margin: 0;
+}
+
+.quote-line-content p + p {
+  margin-top: 0.5rem;
+}
+
+.quote-line-content ul,
+.quote-line-content ol {
+  margin: 0.25rem 0 0;
+  padding-left: 1.25rem;
+}
+
+.quote-line-content pre {
+  margin: 0.25rem 0 0;
+  overflow-x: auto;
+}
+
+.quote-line-content code {
+  font-size: 0.92em;
+}
+
+.quote-signature.subtle {
+  margin: 0.75rem 0 0;
+  font-style: italic;
+}
+
+.quote-signature.subtle a,
+.quote-signature.subtle a:visited,
+.quote-signature.subtle a:hover {
+  color: inherit;
+  font-style: inherit;
+}
+
+.quote-signature.subtle a:hover {
+  text-decoration: underline;
 }
 
 .quote-username {
@@ -193,4 +238,14 @@ form.form-stack input:not([type="checkbox"]) {
 
 .quote-actions {
   margin-top: 0.75rem;
+}
+
+.quote-preview-empty {
+  margin: 0;
+  color: var(--pico-muted-color);
+  font-size: 0.95rem;
+}
+
+.quote-preview-label {
+  text-transform: uppercase;
 }
