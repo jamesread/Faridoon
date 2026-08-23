@@ -7,6 +7,10 @@ main {
   margin-inline: auto;
 }
 
+dialog {
+  max-width: min(768px, 92vw);
+}
+
 .quote {
   margin-bottom: 1.5rem;
 }
@@ -218,6 +222,33 @@ form.form-stack input:not([type="checkbox"]) {
 
 .detail-list dd {
   margin: 0;
+}
+
+.audit-log-date-link {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.audit-log-date-link:hover {
+  color: #0366d6;
+}
+
+.audit-log-ip code {
+  word-break: break-all;
+  font-family: monospace;
+  font-size: 0.92em;
+}
+
+.audit-log-ip-table {
+  word-break: break-all;
+  font-family: monospace;
+  font-size: 0.85em;
 }
 
 .detail-list-inline {

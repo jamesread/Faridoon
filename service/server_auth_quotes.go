@@ -31,6 +31,7 @@ func (s *FaridoonServer) Init(ctx context.Context, _ *connect.Request[faridoonv1
 		Version: buildinfo.Version, SiteTitle: s.siteTitle(ctx), Features: s.featureFlags(ctx),
 		User: s.toProtoUser(su), PendingApprovals: pending, WebhookEvents: webhook.SupportedEvents,
 		HeaderLinks: s.loadEnabledHeaderLinks(ctx),
+		Theme:       s.themeSettings(ctx),
 	}), nil
 }
 

@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { supplementalThemesPlugin } from './vite.supplementalThemes.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -18,11 +19,12 @@ export default defineConfig({
   },
   plugins: [
     vue(),
+    supplementalThemesPlugin(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['faridoon.png', 'icon.svg'],
       workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}', 'supplemental-themes/**/*.css'],
         navigateFallbackDenylist: [/^\/faridoon\.v1\./],
       },
       manifest: {

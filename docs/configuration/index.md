@@ -44,6 +44,8 @@ Admins manage cvars at **Account → Settings** (`/admin/settings`). Missing def
 |-----|------|---------|--------|
 | `site_title` | string | from `siteTitle` / `SITE_TITLE` | Header and document (`<title>`) site title |
 | `quotes_per_page` | int | 5 | Quotes shown per page on listing (1–127) |
+| `theme_mode` | string | `auto` | Site-wide light/dark appearance (`auto`, `light`, or `dark`) for all users |
+| `custom_theme` | string | (empty) | Optional PicoCrank supplemental drop-in theme for all users; empty uses Femtocrank only |
 | `enable_voting` | bool | off | Show vote controls; allow `VoteQuote` |
 | `enable_registration` | bool | on | Allow `/register` and `Register` |
 | `enable_guest_add` | bool | on | Allow logged-out users to submit quotes |

@@ -9,6 +9,8 @@ const (
 const (
 	KeySiteTitle                = "site_title"
 	KeyQuotesPerPage            = "quotes_per_page"
+	KeyThemeMode                = "theme_mode"
+	KeyCustomTheme              = "custom_theme"
 	KeyEnableVoting             = "enable_voting"
 	KeyEnableRegistration       = "enable_registration"
 	KeyEnableGuestAdd           = "enable_guest_add"
@@ -19,6 +21,8 @@ const (
 
 	DefaultQuotesPerPage = 5
 	MaxQuotesPerPage     = 127
+
+	DefaultThemeMode = "auto"
 
 	CategorySite     = "Site"
 	CategoryFeatures = "Features"
@@ -47,6 +51,16 @@ func Defaults(siteTitle string) []Def {
 			Key: KeyQuotesPerPage, MainType: TypeInt, ValueInt: DefaultQuotesPerPage,
 			Title: "Quotes per page", Description: "Number of quotes shown on each listing page (1–127).",
 			Category: CategorySite, Ordinal: 20,
+		},
+		{
+			Key: KeyThemeMode, MainType: TypeString, ValueString: DefaultThemeMode,
+			Title: "Color scheme", Description: "Light/dark appearance for all users. Auto follows the browser or system preference.",
+			Category: CategorySite, Ordinal: 25,
+		},
+		{
+			Key: KeyCustomTheme, MainType: TypeString, ValueString: "",
+			Title: "Drop-in theme", Description: "Optional PicoCrank supplemental theme layered on Femtocrank for all users. Default uses Femtocrank only.",
+			Category: CategorySite, Ordinal: 26,
 		},
 		{
 			Key: KeyEnableVoting, MainType: TypeBool, ValueInt: 0,

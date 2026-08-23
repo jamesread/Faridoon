@@ -1,10 +1,17 @@
 import { reactive, readonly } from 'vue'
 import { client } from './client'
+import { applySiteThemes } from './useSiteTheme.js'
+
+const defaultTheme = {
+  themeMode: 'auto',
+  customTheme: '',
+}
 
 const state = reactive({
   ready: false,
   version: 'development',
   siteTitle: 'Faridoon',
+  theme: { ...defaultTheme },
   features: {
     votingEnabled: false,
     registrationEnabled: true,
@@ -25,6 +32,11 @@ export async function loadInit() {
     const res = await client.init({})
     state.version = res.version || 'development'
     state.siteTitle = res.siteTitle || 'Faridoon'
+    state.theme = {
+      themeMode: res.theme?.themeMode || defaultTheme.themeMode,
+      customTheme: res.theme?.customTheme || defaultTheme.customTheme,
+    }
+    applySiteThemes(state.theme)
     state.features = {
       votingEnabled: !!res.features?.votingEnabled,
       registrationEnabled: !!res.features?.registrationEnabled,

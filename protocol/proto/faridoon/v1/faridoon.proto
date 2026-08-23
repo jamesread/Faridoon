@@ -15,6 +15,11 @@ message Features {
   bool markdown_enabled = 6;
 }
 
+message ThemeSettings {
+  string theme_mode = 1;
+  string custom_theme = 2;
+}
+
 message User {
   int32 id = 1;
   string username = 2;
@@ -71,6 +76,7 @@ message InitResponse {
   int32 pending_approvals = 5;
   repeated string webhook_events = 6;
   repeated HeaderLink header_links = 7;
+  ThemeSettings theme = 8;
 }
 
 message GetCurrentUserRequest {}

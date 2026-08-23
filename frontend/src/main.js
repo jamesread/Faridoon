@@ -1,9 +1,11 @@
 import { createApp } from 'vue'
 import { registerSW } from 'virtual:pwa-register'
-import 'femtocrank/style.css'
 import './style.css'
+import { initSiteThemes } from './composables/useSiteTheme.js'
 import App from './App.vue'
 import router from './router'
+
+void initSiteThemes()
 
 registerSW({
   onNeedRefresh() {

@@ -4,8 +4,10 @@ import Section from 'picocrank/vue/components/Section.vue'
 import FormLayout from 'picocrank/vue/components/FormLayout.vue'
 import FormField from 'picocrank/vue/components/FormField.vue'
 import RadioGroup from 'picocrank/vue/components/RadioGroup.vue'
+import CustomThemeField from '../components/CustomThemeField.vue'
 import { client } from '../composables/client'
 import { loadInit } from '../composables/useInit'
+import { applySiteThemes } from '../composables/useSiteTheme.js'
 
 const cvars = ref([])
 const edits = reactive({})
@@ -19,6 +21,12 @@ const booleanOptions = [
   { label: 'Off', value: false },
 ]
 
+const themeModeOptions = [
+  { label: 'Auto', value: 'auto' },
+  { label: 'Light', value: 'light' },
+  { label: 'Dark', value: 'dark' },
+]
+
 function labelFor(cvar) {
   return cvar.title || cvar.key.replace(/_/g, ' ')
 }
@@ -29,6 +37,14 @@ function fieldId(cvar) {
 
 function markDirty(sectionName) {
   dirtySections[sectionName] = true
+}
+
+function previewSiteTheme(sectionName) {
+  markDirty(sectionName)
+  applySiteThemes({
+    themeMode: edits.theme_mode?.valueString || 'auto',
+    customTheme: edits.custom_theme?.valueString || '',
+  })
 }
 
 function clearDirty() {
@@ -124,7 +140,39 @@ onMounted(load)
     <FormLayout @submit.prevent="saveSection(group)">
       <template v-for="cvar in group.cvars" :key="cvar.key">
         <FormField
-          v-if="cvar.mainType === 'string'"
+          v-if="cvar.key === 'theme_mode'"
+          :label="labelFor(cvar)"
+          fake
+        >
+          <div>
+            <RadioGroup
+              v-model="edits[cvar.key].valueString"
+              :name="fieldId(cvar)"
+              variant="list"
+              :options="themeModeOptions"
+              :aria-label="labelFor(cvar)"
+              @change="previewSiteTheme(group.name)"
+            />
+            <p v-if="cvar.description" class="subtle">{{ cvar.description }}</p>
+          </div>
+        </FormField>
+
+        <FormField
+          v-else-if="cvar.key === 'custom_theme'"
+          :label="labelFor(cvar)"
+          fake
+        >
+          <div>
+            <CustomThemeField
+              v-model="edits[cvar.key].valueString"
+              @change="previewSiteTheme(group.name)"
+            />
+            <p v-if="cvar.description" class="subtle">{{ cvar.description }}</p>
+          </div>
+        </FormField>
+
+        <FormField
+          v-else-if="cvar.mainType === 'string'"
           :label="labelFor(cvar)"
           :for="fieldId(cvar)"
         >

@@ -85,6 +85,32 @@ func (s *FaridoonServer) showPwaPrompt(ctx context.Context) bool {
 	return s.boolCvar(ctx, cvar.KeyEnablePwaPrompt, false)
 }
 
+func (s *FaridoonServer) themeSettings(ctx context.Context) *faridoonv1.ThemeSettings {
+	return &faridoonv1.ThemeSettings{
+		ThemeMode:   s.themeMode(ctx),
+		CustomTheme: s.customTheme(ctx),
+	}
+}
+
+func (s *FaridoonServer) themeMode(ctx context.Context) string {
+	row, err := s.store.FindCvar(ctx, cvar.KeyThemeMode)
+	if err != nil || row == nil {
+		return cvar.DefaultThemeMode
+	}
+	return cvar.NormalizeThemeMode(row.ValueString)
+}
+
+func (s *FaridoonServer) customTheme(ctx context.Context) string {
+	row, err := s.store.FindCvar(ctx, cvar.KeyCustomTheme)
+	if err != nil || row == nil {
+		return ""
+	}
+	if !cvar.IsValidCustomThemeID(row.ValueString) {
+		return ""
+	}
+	return row.ValueString
+}
+
 func (s *FaridoonServer) quotesPerPage(ctx context.Context) int {
 	row, err := s.store.FindCvar(ctx, cvar.KeyQuotesPerPage)
 	if err != nil || row == nil || row.ValueInt < 1 {
@@ -112,7 +138,7 @@ func (s *FaridoonServer) ListCvars(ctx context.Context, _ *connect.Request[farid
 func validateCvarUpdate(row *store.CvarRow, valueInt int32, valueString string) (int, string, error) {
 	switch row.MainType {
 	case cvar.TypeString:
-		return validateStringCvar(valueString)
+		return validateStringCvar(row.Key, valueString)
 	case cvar.TypeInt:
 		return validateIntCvar(row.Key, valueInt)
 	case cvar.TypeBool:
@@ -122,7 +148,19 @@ func validateCvarUpdate(row *store.CvarRow, valueInt int32, valueString string) 
 	}
 }
 
-func validateStringCvar(valueString string) (int, string, error) {
+func validateStringCvar(key, valueString string) (int, string, error) {
+	if key == cvar.KeyCustomTheme {
+		value, err := cvar.ValidateCustomTheme(valueString)
+		return 0, value, err
+	}
+	if key == cvar.KeyThemeMode {
+		value, err := cvar.ValidateThemeMode(valueString)
+		return 0, value, err
+	}
+	return validateRequiredString(valueString)
+}
+
+func validateRequiredString(valueString string) (int, string, error) {
 	if valueString == "" {
 		return 0, "", fmt.Errorf("value required")
 	}

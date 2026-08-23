@@ -177,7 +177,7 @@ defineExpose({ loadInit })
     logo-url="/faridoon.png"
     :sidebar-enabled="false"
     :top-bar-enabled="true"
-    :theme-toggle-enabled="true"
+    :theme-toggle-enabled="false"
     :show-branding="true"
     :navigation="navigation"
     :username="auth?.username || ''"
