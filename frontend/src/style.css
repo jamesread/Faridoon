@@ -124,6 +124,11 @@ dialog {
   font-size: 0.9rem;
 }
 
+.form-success {
+  color: #27ae60;
+  font-size: 0.9rem;
+}
+
 .user-info {
   display: flex;
   align-items: center;
@@ -141,21 +146,6 @@ dialog {
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 1rem;
-}
-
-.danger-zone-details > summary {
-  cursor: pointer;
-  font-weight: 700;
-  list-style-position: outside;
-  padding: 0.5rem 0;
-}
-
-.danger-zone-content {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.75rem 0 0.25rem;
 }
 
 .webhook-intro {

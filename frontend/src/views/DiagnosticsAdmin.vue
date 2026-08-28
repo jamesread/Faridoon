@@ -40,6 +40,11 @@ onMounted(async () => {
 
 <template>
   <Section title="Diagnostics" subtitle="Runtime and database stats" :padding="true">
+    <template #toolbar>
+      <router-link :to="{ name: 'controlPanel' }" class="button inline-icon neutral">
+        <span>System Control Panel</span>
+      </router-link>
+    </template>
     <p v-if="error" class="form-error">{{ error }}</p>
     <ReadOnlyTextArea
       v-else

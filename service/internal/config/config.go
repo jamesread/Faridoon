@@ -28,7 +28,7 @@ type Config struct {
 }
 
 // RequiredMigration is the sql-migrate id this binary expects to be applied.
-const RequiredMigration = "14.quotes-markdown-enabled.sql"
+const RequiredMigration = "16.theme-theming.sql"
 
 var configDirOverride string
 

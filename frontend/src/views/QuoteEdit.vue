@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Section from 'picocrank/vue/components/Section.vue'
-import DangerZone from '../components/DangerZone.vue'
+import DangerZone from 'picocrank/vue/components/DangerZone.vue'
 import QuoteLivePreview from '../components/QuoteLivePreview.vue'
 import { client } from '../composables/client'
 import { initState } from '../composables/useInit'
@@ -66,8 +66,12 @@ async function destroy() {
     </form>
   </Section>
   <QuoteLivePreview :content="content" :markdown-enabled="markdownEnabled" />
-  <DangerZone v-if="initState.user?.isAdmin" :title="`Delete quote #${id}`">
-    <p>Permanently remove this quote.</p>
-    <button type="button" class="button bad" @click="destroy">Delete</button>
+  <DangerZone
+    v-if="initState.user?.isAdmin"
+    :title="`Delete quote #${id}`"
+    description="Show destructive actions"
+    warning="Permanently remove this quote."
+  >
+    <button type="button" class="bad" @click="destroy">Delete</button>
   </DangerZone>
 </template>

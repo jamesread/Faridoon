@@ -90,8 +90,11 @@ watch(links, syncEdits, { deep: true })
 <template>
   <Section title="Header links" subtitle="Custom links shown in the site header" :padding="false">
     <template #toolbar>
+      <RouterLink :to="{ name: 'controlPanel' }" class="button inline-icon neutral">
+        <span>System Control Panel</span>
+      </RouterLink>
       <RouterLink
-        to="/admin/header-links/create"
+        :to="{ name: 'headerLinkCreate' }"
         class="button"
         title="Add header link"
         aria-label="Add header link"

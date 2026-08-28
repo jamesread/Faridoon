@@ -168,6 +168,9 @@ watch(() => route.query.page, load)
   <div class="audit-logs-page" :class="{ 'audit-logs-page--wide': isWide }">
     <Section title="Audit logs" subtitle="Administrative activity" :padding="false">
       <template #toolbar>
+        <router-link :to="{ name: 'controlPanel' }" class="button inline-icon neutral">
+          <span>System Control Panel</span>
+        </router-link>
         <button
           v-if="!isMobile"
           type="button"

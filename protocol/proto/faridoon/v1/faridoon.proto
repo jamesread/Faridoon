@@ -13,11 +13,10 @@ message Features {
   bool syntax_highlighting_enabled = 4;
   bool show_pwa_prompt = 5;
   bool markdown_enabled = 6;
-}
-
-message ThemeSettings {
-  string theme_mode = 1;
-  string custom_theme = 2;
+  bool theme_color_scheme_switcher_enabled = 7;
+  string theme_name = 8;
+  string theme_control = 9;
+  repeated string available_themes = 10;
 }
 
 message User {
@@ -29,6 +28,9 @@ message User {
   bool can_approve_quotes = 6;
   bool can_bypass_approval = 7;
   repeated string privileges = 8;
+  string email = 9;
+  string created_at = 10;
+  string last_login_at = 11;
 }
 
 message QuoteLine {
@@ -76,7 +78,6 @@ message InitResponse {
   int32 pending_approvals = 5;
   repeated string webhook_events = 6;
   repeated HeaderLink header_links = 7;
-  ThemeSettings theme = 8;
 }
 
 message GetCurrentUserRequest {}
@@ -394,6 +395,28 @@ message GetDiagnosticsResponse {
   int32 approved_quotes = 7;
 }
 
+message GetUserPreferencesRequest {}
+
+message GetUserPreferencesResponse {
+  string language = 1;
+  repeated string available_languages = 2;
+  bool sidebar_enabled = 3;
+}
+
+message SaveUserPreferencesRequest {
+  string language = 1;
+  bool sidebar_enabled = 2;
+}
+
+message SaveUserPreferencesResponse {}
+
+message ChangePasswordRequest {
+  string current_password = 1;
+  string new_password = 2;
+}
+
+message ChangePasswordResponse {}
+
 service FaridoonService {
   rpc Init(InitRequest) returns (InitResponse);
   rpc GetCurrentUser(GetCurrentUserRequest) returns (GetCurrentUserResponse);
@@ -440,4 +463,8 @@ service FaridoonService {
   rpc UpdateCvar(UpdateCvarRequest) returns (Cvar);
 
   rpc GetDiagnostics(GetDiagnosticsRequest) returns (GetDiagnosticsResponse);
+
+  rpc GetUserPreferences(GetUserPreferencesRequest) returns (GetUserPreferencesResponse);
+  rpc SaveUserPreferences(SaveUserPreferencesRequest) returns (SaveUserPreferencesResponse);
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
 }

@@ -85,30 +85,27 @@ func (s *FaridoonServer) showPwaPrompt(ctx context.Context) bool {
 	return s.boolCvar(ctx, cvar.KeyEnablePwaPrompt, false)
 }
 
-func (s *FaridoonServer) themeSettings(ctx context.Context) *faridoonv1.ThemeSettings {
-	return &faridoonv1.ThemeSettings{
-		ThemeMode:   s.themeMode(ctx),
-		CustomTheme: s.customTheme(ctx),
-	}
+func (s *FaridoonServer) themeColorSchemeSwitcherEnabled(ctx context.Context) bool {
+	return s.boolCvar(ctx, cvar.KeyThemeColorSchemeSwitcherEnabled, false)
 }
 
-func (s *FaridoonServer) themeMode(ctx context.Context) string {
-	row, err := s.store.FindCvar(ctx, cvar.KeyThemeMode)
-	if err != nil || row == nil {
-		return cvar.DefaultThemeMode
-	}
-	return cvar.NormalizeThemeMode(row.ValueString)
-}
-
-func (s *FaridoonServer) customTheme(ctx context.Context) string {
-	row, err := s.store.FindCvar(ctx, cvar.KeyCustomTheme)
+func (s *FaridoonServer) themeName(ctx context.Context) string {
+	row, err := s.store.FindCvar(ctx, cvar.KeyThemeName)
 	if err != nil || row == nil {
 		return ""
 	}
-	if !cvar.IsValidCustomThemeID(row.ValueString) {
+	if !cvar.IsAvailableThemeName(row.ValueString) {
 		return ""
 	}
 	return row.ValueString
+}
+
+func (s *FaridoonServer) themeControl(ctx context.Context) string {
+	row, err := s.store.FindCvar(ctx, cvar.KeyThemeControl)
+	if err != nil || row == nil {
+		return cvar.ThemeControlUser
+	}
+	return cvar.NormalizeThemeControl(row.ValueString)
 }
 
 func (s *FaridoonServer) quotesPerPage(ctx context.Context) int {
@@ -149,12 +146,12 @@ func validateCvarUpdate(row *store.CvarRow, valueInt int32, valueString string) 
 }
 
 func validateStringCvar(key, valueString string) (int, string, error) {
-	if key == cvar.KeyCustomTheme {
-		value, err := cvar.ValidateCustomTheme(valueString)
+	if key == cvar.KeyThemeName {
+		value, err := cvar.ValidateThemeName(valueString)
 		return 0, value, err
 	}
-	if key == cvar.KeyThemeMode {
-		value, err := cvar.ValidateThemeMode(valueString)
+	if key == cvar.KeyThemeControl {
+		value, err := cvar.ValidateThemeControl(valueString)
 		return 0, value, err
 	}
 	return validateRequiredString(valueString)

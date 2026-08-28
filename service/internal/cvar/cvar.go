@@ -9,8 +9,6 @@ const (
 const (
 	KeySiteTitle                = "site_title"
 	KeyQuotesPerPage            = "quotes_per_page"
-	KeyThemeMode                = "theme_mode"
-	KeyCustomTheme              = "custom_theme"
 	KeyEnableVoting             = "enable_voting"
 	KeyEnableRegistration       = "enable_registration"
 	KeyEnableGuestAdd           = "enable_guest_add"
@@ -21,8 +19,6 @@ const (
 
 	DefaultQuotesPerPage = 5
 	MaxQuotesPerPage     = 127
-
-	DefaultThemeMode = "auto"
 
 	CategorySite     = "Site"
 	CategoryFeatures = "Features"
@@ -53,14 +49,22 @@ func Defaults(siteTitle string) []Def {
 			Category: CategorySite, Ordinal: 20,
 		},
 		{
-			Key: KeyThemeMode, MainType: TypeString, ValueString: DefaultThemeMode,
-			Title: "Color scheme", Description: "Light/dark appearance for all users. Auto follows the browser or system preference.",
-			Category: CategorySite, Ordinal: 25,
+			Key: KeyThemeColorSchemeSwitcherEnabled, MainType: TypeBool, ValueInt: 0,
+			Title:       "Color scheme switcher",
+			Description: "Show the auto/light/dark color scheme control in the PicoCrank header.",
+			Category:    CategoryTheme, Ordinal: 10,
 		},
 		{
-			Key: KeyCustomTheme, MainType: TypeString, ValueString: "",
-			Title: "Drop-in theme", Description: "Optional PicoCrank supplemental theme layered on Femtocrank for all users. Default uses Femtocrank only.",
-			Category: CategorySite, Ordinal: 26,
+			Key: KeyThemeName, MainType: TypeString, ValueString: "",
+			Title:       "Theme name",
+			Description: "Default or enforced drop-in CSS theme (empty = Femtocrank base styling only).",
+			Category:    CategoryTheme, Ordinal: 20,
+		},
+		{
+			Key: KeyThemeControl, MainType: TypeString, ValueString: ThemeControlUser,
+			Title:       "Theme control",
+			Description: "System preference forces the theme name cvar for everyone. User preference uses the cvar as default and allows overrides on User Preferences.",
+			Category:    CategoryTheme, Ordinal: 30,
 		},
 		{
 			Key: KeyEnableVoting, MainType: TypeBool, ValueInt: 0,

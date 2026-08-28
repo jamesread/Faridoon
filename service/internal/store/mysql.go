@@ -40,8 +40,16 @@ type UserRow struct {
 	Username   string
 	Password   string
 	GroupTitle string
+	Email      string
+	Registered string
+	LastLogin  string
 	ID         int
 	GroupID    int
+}
+
+type UserPreferencesRow struct {
+	Language       string
+	SidebarEnabled bool
 }
 
 type GroupRow struct {
@@ -144,6 +152,8 @@ type Store interface {
 	CreateHeaderLink(ctx context.Context, title, url string, sortOrder int, enabled, openInNewTab bool) (int, error)
 	UpdateHeaderLink(ctx context.Context, id int, title, url string, sortOrder int, enabled, openInNewTab bool) error
 	DeleteHeaderLink(ctx context.Context, id int) error
+	GetUserPreferences(ctx context.Context, userID int) (*UserPreferencesRow, error)
+	SaveUserPreferences(ctx context.Context, userID int, language string, sidebarEnabled bool) error
 	ListCvars(ctx context.Context) ([]CvarRow, error)
 	FindCvar(ctx context.Context, key string) (*CvarRow, error)
 	InsertCvarIfMissing(ctx context.Context, row CvarRow) error
@@ -543,13 +553,16 @@ func (m *MySQL) UserCount(ctx context.Context) (int, error) {
 }
 
 func userSelectSQL() string {
-	return "SELECT u.id, u.username, u." + colPassword + ", COALESCE(u." + colGroup + ", 0), COALESCE(g.title, '') FROM users u LEFT JOIN " + tableGroups + " g ON u." + colGroup + " = g.id"
+	return `SELECT u.id, u.username, u.` + colPassword + `, COALESCE(u.` + colGroup + `, 0), COALESCE(g.title, ''),
+  COALESCE(u.email, ''), COALESCE(DATE_FORMAT(u.registered, '%Y-%m-%d %H:%i:%s'), ''),
+  COALESCE(DATE_FORMAT(u.lastLogin, '%Y-%m-%d %H:%i:%s'), '')
+FROM users u LEFT JOIN ` + tableGroups + ` g ON u.` + colGroup + ` = g.id`
 }
 
 func scanUser(s interface{ Scan(...any) error }) (*UserRow, error) {
 	var u UserRow
 	var groupTitle sql.NullString
-	if err := s.Scan(&u.ID, &u.Username, &u.Password, &u.GroupID, &groupTitle); err != nil {
+	if err := s.Scan(&u.ID, &u.Username, &u.Password, &u.GroupID, &groupTitle, &u.Email, &u.Registered, &u.LastLogin); err != nil {
 		return nil, err
 	}
 	u.GroupTitle = groupTitle.String
@@ -1184,5 +1197,45 @@ func (m *MySQL) UpdateCvar(ctx context.Context, key string, valueInt int, valueS
 	_, err := m.db.ExecContext(ctx,
 		`UPDATE cvars SET cvar_value_int = ?, cvar_value_string = NULLIF(?, '') WHERE cvar_key = ? LIMIT 1`,
 		valueInt, valueString, key)
+	return err
+}
+
+func defaultUserPreferences() *UserPreferencesRow {
+	return &UserPreferencesRow{
+		Language:       "",
+		SidebarEnabled: true,
+	}
+}
+
+func (m *MySQL) GetUserPreferences(ctx context.Context, userID int) (*UserPreferencesRow, error) {
+	row := m.db.QueryRowContext(ctx,
+		`SELECT language, sidebar_enabled FROM user_preferences WHERE user_id = ? LIMIT 1`,
+		userID)
+	var prefs UserPreferencesRow
+	var sidebar int
+	err := row.Scan(&prefs.Language, &sidebar)
+	if errors.Is(err, sql.ErrNoRows) {
+		return defaultUserPreferences(), nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	prefs.SidebarEnabled = sidebar != 0
+	return &prefs, nil
+}
+
+func (m *MySQL) SaveUserPreferences(ctx context.Context, userID int, language string, sidebarEnabled bool) error {
+	sidebar := 0
+	if sidebarEnabled {
+		sidebar = 1
+	}
+	_, err := m.db.ExecContext(ctx,
+		`INSERT INTO user_preferences (user_id, language, sidebar_enabled, created_at, updated_at)
+		 VALUES (?, ?, ?, NOW(3), NOW(3))
+		 ON DUPLICATE KEY UPDATE
+		   language = VALUES(language),
+		   sidebar_enabled = VALUES(sidebar_enabled),
+		   updated_at = NOW(3)`,
+		userID, language, sidebar)
 	return err
 }

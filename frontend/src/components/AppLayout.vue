@@ -14,14 +14,20 @@ import {
 } from '@hugeicons/core-free-icons'
 import { initState, loadInit } from '../composables/useInit'
 import { client } from '../composables/client'
+import { themeColorSchemeSwitcherEnabledFromFeatures } from '../composables/applyAppTheming.js'
 
 const router = useRouter()
 const siteTitle = computed(() => initState.siteTitle || 'Faridoon')
 const appVersion = computed(() => initState.version || 'development')
 const auth = computed(() => initState.user)
+const isLoggedIn = computed(() => !!auth.value)
 const features = computed(() => initState.features)
 const pendingApprovals = computed(() => initState.pendingApprovals || 0)
 const headerLinks = computed(() => initState.headerLinks || [])
+
+const themeColorSchemeSwitcherEnabled = computed(() =>
+  themeColorSchemeSwitcherEnabledFromFeatures(features.value),
+)
 
 watch(
   siteTitle,
@@ -132,9 +138,13 @@ function goHome() {
   router.push({ name: 'quotes' })
 }
 
-function goAccount() {
-  router.push({ name: 'account' })
+function goToUserControlPanel() {
+  router.push({ name: 'userControlPanel' })
 }
+
+defineExpose({
+  loadInit,
+})
 
 function truncateQuote(content, max = 120) {
   const text = String(content || '').replace(/\s+/g, ' ').trim()
@@ -168,7 +178,6 @@ async function fetchQuoteResults(query, { signal } = {}) {
   }))
 }
 
-defineExpose({ loadInit })
 </script>
 
 <template>
@@ -177,12 +186,14 @@ defineExpose({ loadInit })
     logo-url="/faridoon.png"
     :sidebar-enabled="false"
     :top-bar-enabled="true"
-    :theme-toggle-enabled="false"
+    :theme-toggle-enabled="isLoggedIn && themeColorSchemeSwitcherEnabled"
     :show-branding="true"
     :navigation="navigation"
-    :username="auth?.username || ''"
+    :top-bar-navigation="navigation"
+    :username="isLoggedIn ? auth.username : ''"
+    :login-route="{ name: 'login' }"
     @logo-click="goHome"
-    @user-click="goAccount"
+    @user-click="goToUserControlPanel"
   >
     <template #toolbar>
       <QuickSearch
@@ -191,14 +202,6 @@ defineExpose({ loadInit })
         :max-results="15"
         :fetch-results="fetchQuoteResults"
       />
-    </template>
-    <template
-      v-if="!auth"
-      #user-info
-    >
-      <div class="user-info">
-        <router-link to="/login">Login</router-link>
-      </div>
     </template>
   </Header>
 

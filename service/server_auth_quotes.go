@@ -12,6 +12,7 @@ import (
 	"faridoon/service/buildinfo"
 	faridoonv1 "faridoon/service/gen/faridoon/v1"
 	"faridoon/service/internal/authpass"
+	"faridoon/service/internal/cvar"
 	"faridoon/service/internal/quote"
 	"faridoon/service/internal/store"
 	"faridoon/service/internal/webhook"
@@ -31,18 +32,21 @@ func (s *FaridoonServer) Init(ctx context.Context, _ *connect.Request[faridoonv1
 		Version: buildinfo.Version, SiteTitle: s.siteTitle(ctx), Features: s.featureFlags(ctx),
 		User: s.toProtoUser(su), PendingApprovals: pending, WebhookEvents: webhook.SupportedEvents,
 		HeaderLinks: s.loadEnabledHeaderLinks(ctx),
-		Theme:       s.themeSettings(ctx),
 	}), nil
 }
 
 func (s *FaridoonServer) featureFlags(ctx context.Context) *faridoonv1.Features {
 	return &faridoonv1.Features{
-		VotingEnabled:             s.votingEnabled(ctx),
-		RegistrationEnabled:       s.registrationEnabled(ctx),
-		GuestAddEnabled:           s.guestAddEnabled(ctx),
-		SyntaxHighlightingEnabled: s.syntaxHighlightingEnabled(ctx),
-		ShowPwaPrompt:             s.showPwaPrompt(ctx),
-		MarkdownEnabled:           s.markdownEnabled(ctx),
+		VotingEnabled:                   s.votingEnabled(ctx),
+		RegistrationEnabled:             s.registrationEnabled(ctx),
+		GuestAddEnabled:                 s.guestAddEnabled(ctx),
+		SyntaxHighlightingEnabled:       s.syntaxHighlightingEnabled(ctx),
+		ShowPwaPrompt:                   s.showPwaPrompt(ctx),
+		MarkdownEnabled:                 s.markdownEnabled(ctx),
+		ThemeColorSchemeSwitcherEnabled: s.themeColorSchemeSwitcherEnabled(ctx),
+		ThemeName:                       s.themeName(ctx),
+		ThemeControl:                    s.themeControl(ctx),
+		AvailableThemes:                 cvar.AvailableThemeNames(),
 	}
 }
 

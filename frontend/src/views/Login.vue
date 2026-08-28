@@ -18,8 +18,8 @@ async function onLocalLogin({ username, password }) {
     await loadInit()
     const redirect = typeof router.currentRoute.value.query.redirect === 'string'
       ? router.currentRoute.value.query.redirect
-      : '/account'
-    router.push(redirect || '/account')
+      : '/user-control-panel'
+    router.push(redirect || '/user-control-panel')
   } catch (e) {
     const message = e.message || String(e)
     error.value = message

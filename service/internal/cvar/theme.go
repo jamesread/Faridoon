@@ -5,22 +5,40 @@ import (
 	"strings"
 )
 
-var validThemeModes = map[string]bool{
-	"auto":  true,
-	"light": true,
-	"dark":  true,
+const (
+	KeyThemeColorSchemeSwitcherEnabled = "theme_color_scheme_switcher_enabled"
+	KeyThemeName                       = "theme_name"
+	KeyThemeControl                    = "theme_control"
+
+	ThemeControlSystem = "system"
+	ThemeControlUser   = "user"
+
+	CategoryTheme = "Theme"
+)
+
+var availableThemeNames = []string{
+	"catppuccin-latte-frappe",
+	"dracula-alucard",
+	"gruvbox-dark-light",
+	"waffles",
 }
 
-func IsValidThemeMode(mode string) bool {
-	return validThemeModes[strings.ToLower(strings.TrimSpace(mode))]
+func AvailableThemeNames() []string {
+	out := make([]string, len(availableThemeNames))
+	copy(out, availableThemeNames)
+	return out
 }
 
-func NormalizeThemeMode(mode string) string {
-	normalized := strings.ToLower(strings.TrimSpace(mode))
-	if IsValidThemeMode(normalized) {
-		return normalized
+func IsAvailableThemeName(name string) bool {
+	if name == "" {
+		return true
 	}
-	return DefaultThemeMode
+	for _, n := range availableThemeNames {
+		if n == name {
+			return true
+		}
+	}
+	return false
 }
 
 func IsValidCustomThemeID(id string) bool {
@@ -36,16 +54,31 @@ func isCustomThemeChar(r rune) bool {
 	return (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-'
 }
 
-func ValidateCustomTheme(value string) (string, error) {
+func ValidateThemeName(value string) (string, error) {
+	value = strings.TrimSpace(value)
 	if !IsValidCustomThemeID(value) {
-		return "", fmt.Errorf("invalid custom theme")
+		return "", fmt.Errorf("invalid theme name")
+	}
+	if !IsAvailableThemeName(value) {
+		return "", fmt.Errorf("unknown theme name")
 	}
 	return value, nil
 }
 
-func ValidateThemeMode(value string) (string, error) {
-	if !IsValidThemeMode(value) {
-		return "", fmt.Errorf("theme_mode must be auto, light, or dark")
+func ValidateThemeControl(value string) (string, error) {
+	value = strings.ToLower(strings.TrimSpace(value))
+	switch value {
+	case ThemeControlSystem, ThemeControlUser:
+		return value, nil
+	default:
+		return "", fmt.Errorf("theme_control must be system or user")
 	}
-	return NormalizeThemeMode(value), nil
+}
+
+func NormalizeThemeControl(value string) string {
+	normalized, err := ValidateThemeControl(value)
+	if err != nil {
+		return ThemeControlUser
+	}
+	return normalized
 }

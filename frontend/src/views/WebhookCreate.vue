@@ -38,7 +38,7 @@ async function submit() {
       events: selectedEvents.value,
       enabled: enabled.value,
     })
-    router.push('/admin/webhooks')
+    router.push({ name: 'webhooks' })
   } catch (e) {
     error.value = e.message || String(e)
   }
@@ -48,7 +48,7 @@ async function submit() {
 <template>
   <Section title="Add webhook" :padding="true">
     <template #toolbar>
-      <RouterLink to="/admin/webhooks" class="button">Back</RouterLink>
+      <RouterLink :to="{ name: 'webhooks' }" class="button">Back</RouterLink>
     </template>
     <form class="form-stack" @submit.prevent="submit">
       <label>
@@ -82,7 +82,7 @@ async function submit() {
       <p v-if="error" class="form-error">{{ error }}</p>
       <div class="quote-edit-actions">
         <button type="submit" class="button">Create</button>
-        <RouterLink to="/admin/webhooks" class="button">Cancel</RouterLink>
+        <RouterLink :to="{ name: 'webhooks' }" class="button">Cancel</RouterLink>
       </div>
     </form>
   </Section>

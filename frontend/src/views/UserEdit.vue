@@ -28,21 +28,21 @@ onMounted(async () => {
 
 async function save() {
   await client.updateUser({ id: Number(props.id), groupId: Number(groupId.value) })
-  router.push(`/admin/users/${props.id}`)
+  router.push({ name: 'iamUser', params: { id: String(props.id) } })
 }
 
 async function destroy() {
   if (isSelf.value) return
   if (!confirm('Delete this user?')) return
   await client.deleteUser({ id: Number(props.id) })
-  router.push('/admin/users')
+  router.push({ name: 'iamUsers' })
 }
 </script>
 
 <template>
   <Section :title="user ? `Edit ${user.username}` : 'Edit user'" :padding="true">
     <template #toolbar>
-      <RouterLink :to="`/admin/users/${id}`" class="button">Back</RouterLink>
+      <RouterLink :to="{ name: 'iamUser', params: { id: String(id) } }" class="button">Back</RouterLink>
     </template>
     <p v-if="error" class="form-error">{{ error }}</p>
     <form v-else-if="user" class="form-stack" @submit.prevent="save">
@@ -54,7 +54,7 @@ async function destroy() {
       </label>
       <div class="quote-edit-actions">
         <button type="submit" class="button">Save</button>
-        <RouterLink :to="`/admin/users/${id}`" class="button">Cancel</RouterLink>
+        <RouterLink :to="{ name: 'iamUser', params: { id: String(id) } }" class="button">Cancel</RouterLink>
       </div>
     </form>
   </Section>

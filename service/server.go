@@ -30,6 +30,9 @@ type FaridoonServer struct {
 type sessionUser struct {
 	Username   string
 	GroupTitle string
+	Email      string
+	Registered string
+	LastLogin  string
 	Privileges []string
 	ID         int
 	GroupID    int
@@ -74,6 +77,7 @@ func (s *FaridoonServer) loadSessionUser(ctx context.Context) (*sessionUser, err
 	}
 	return &sessionUser{
 		Username: row.Username, GroupTitle: row.GroupTitle, Privileges: privs,
+		Email: row.Email, Registered: row.Registered, LastLogin: row.LastLogin,
 		ID: row.ID, GroupID: row.GroupID,
 	}, nil
 }
@@ -134,6 +138,7 @@ func (s *FaridoonServer) toProtoUser(su *sessionUser) *faridoonv1.User {
 		GroupTitle: su.GroupTitle, IsAdmin: su.isAdmin(),
 		CanApproveQuotes: su.hasPriv("APPROVE_QUOTES"), CanBypassApproval: su.hasPriv("BYPASS_APPROVAL"),
 		Privileges: su.Privileges,
+		Email:      su.Email, CreatedAt: su.Registered, LastLoginAt: su.LastLogin,
 	}
 }
 
@@ -142,7 +147,11 @@ func (s *FaridoonServer) toProtoUserRow(ctx context.Context, row *store.UserRow)
 		return nil
 	}
 	privs, _ := s.store.UserPrivileges(ctx, row.ID, row.GroupID)
-	su := &sessionUser{Username: row.Username, GroupTitle: row.GroupTitle, Privileges: privs, ID: row.ID, GroupID: row.GroupID}
+	su := &sessionUser{
+		Username: row.Username, GroupTitle: row.GroupTitle, Privileges: privs,
+		Email: row.Email, Registered: row.Registered, LastLogin: row.LastLogin,
+		ID: row.ID, GroupID: row.GroupID,
+	}
 	return s.toProtoUser(su)
 }
 

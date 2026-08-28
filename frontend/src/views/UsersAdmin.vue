@@ -1,10 +1,10 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
+import { HugeiconsIcon } from '@hugeicons/vue'
+import { ArrowLeft01Icon, PlusSignIcon } from '@hugeicons/core-free-icons'
 import Section from 'picocrank/vue/components/Section.vue'
 import Table from 'picocrank/vue/components/Table.vue'
-import { HugeiconsIcon } from '@hugeicons/vue'
-import { PlusSignIcon } from '@hugeicons/core-free-icons'
 import { client } from '../composables/client'
 
 const users = ref([])
@@ -54,18 +54,24 @@ onMounted(load)
 
 <template>
   <Section title="Users" :padding="false">
+    <template #toolbar>
+      <RouterLink :to="{ name: 'iam' }" class="button inline-icon neutral">
+        <HugeiconsIcon :icon="ArrowLeft01Icon" width="1em" height="1em" aria-hidden="true" />
+        <span>IAM</span>
+      </RouterLink>
+    </template>
     <p v-if="error" class="form-error padding">{{ error }}</p>
     <Table v-else :data="userRows" :headers="userHeaders" :show-pagination="true">
       <template #cell-username="{ row, value }">
-        <RouterLink :to="`/admin/users/${row.id}`">{{ value }}</RouterLink>
+        <RouterLink :to="{ name: 'iamUser', params: { id: String(row.id) } }">{{ value }}</RouterLink>
       </template>
       <template #cell-groupTitle="{ row, value }">
-        <RouterLink :to="`/admin/groups/${row.groupId}`">{{ value }}</RouterLink>
+        <RouterLink :to="{ name: 'iamGroup', params: { id: String(row.groupId) } }">{{ value }}</RouterLink>
       </template>
       <template #cell-actions="{ row }">
-        <RouterLink :to="`/admin/users/${row.id}`">View</RouterLink>
+        <RouterLink :to="{ name: 'iamUser', params: { id: String(row.id) } }">View</RouterLink>
         ·
-        <RouterLink :to="`/admin/users/${row.id}/edit`">Edit</RouterLink>
+        <RouterLink :to="{ name: 'iamUserEdit', params: { id: String(row.id) } }">Edit</RouterLink>
       </template>
     </Table>
   </Section>
@@ -73,7 +79,7 @@ onMounted(load)
   <Section title="Groups" :padding="false">
     <template #toolbar>
       <RouterLink
-        to="/admin/groups/create"
+        :to="{ name: 'iamGroupCreate' }"
         class="button"
         title="Create group"
         aria-label="Create group"
@@ -84,10 +90,10 @@ onMounted(load)
 
     <Table v-if="groups.length > 0" :data="groupRows" :headers="groupHeaders" :show-pagination="groups.length > 10">
       <template #cell-title="{ row, value }">
-        <RouterLink :to="`/admin/groups/${row.id}`">{{ value }}</RouterLink>
+        <RouterLink :to="{ name: 'iamGroup', params: { id: String(row.id) } }">{{ value }}</RouterLink>
       </template>
       <template #cell-actions="{ row }">
-        <RouterLink :to="`/admin/groups/${row.id}`">View</RouterLink>
+        <RouterLink :to="{ name: 'iamGroup', params: { id: String(row.id) } }">View</RouterLink>
       </template>
     </Table>
     <p v-else class="padding subtle">No groups yet.</p>

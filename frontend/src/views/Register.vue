@@ -21,7 +21,7 @@ async function submit() {
     })
     setUser(res.user)
     await loadInit()
-    router.push('/account')
+    router.push('/user-control-panel')
   } catch (e) {
     error.value = e.message || String(e)
   }

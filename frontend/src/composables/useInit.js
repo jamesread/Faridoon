@@ -1,17 +1,12 @@
 import { reactive, readonly } from 'vue'
 import { client } from './client'
-import { applySiteThemes } from './useSiteTheme.js'
-
-const defaultTheme = {
-  themeMode: 'auto',
-  customTheme: '',
-}
+import { applyAppTheming } from './applyAppTheming.js'
+import { loadAndApplyUserPreferences } from './userPreferences.js'
 
 const state = reactive({
   ready: false,
   version: 'development',
   siteTitle: 'Faridoon',
-  theme: { ...defaultTheme },
   features: {
     votingEnabled: false,
     registrationEnabled: true,
@@ -19,6 +14,10 @@ const state = reactive({
     syntaxHighlightingEnabled: false,
     markdownEnabled: false,
     showPwaPrompt: false,
+    themeColorSchemeSwitcherEnabled: false,
+    themeName: '',
+    themeControl: 'user',
+    availableThemes: [],
   },
   user: null,
   pendingApprovals: 0,
@@ -27,26 +26,33 @@ const state = reactive({
   error: null,
 })
 
+function syncFeatures(res) {
+  state.features = {
+    votingEnabled: !!res.features?.votingEnabled,
+    registrationEnabled: !!res.features?.registrationEnabled,
+    guestAddEnabled: !!res.features?.guestAddEnabled,
+    syntaxHighlightingEnabled: !!res.features?.syntaxHighlightingEnabled,
+    markdownEnabled: !!res.features?.markdownEnabled,
+    showPwaPrompt: !!res.features?.showPwaPrompt,
+    themeColorSchemeSwitcherEnabled: !!res.features?.themeColorSchemeSwitcherEnabled,
+    themeName: res.features?.themeName || '',
+    themeControl: res.features?.themeControl || 'user',
+    availableThemes: res.features?.availableThemes?.length ? [...res.features.availableThemes] : [],
+  }
+}
+
 export async function loadInit() {
   try {
     const res = await client.init({})
     state.version = res.version || 'development'
     state.siteTitle = res.siteTitle || 'Faridoon'
-    state.theme = {
-      themeMode: res.theme?.themeMode || defaultTheme.themeMode,
-      customTheme: res.theme?.customTheme || defaultTheme.customTheme,
-    }
-    applySiteThemes(state.theme)
-    state.features = {
-      votingEnabled: !!res.features?.votingEnabled,
-      registrationEnabled: !!res.features?.registrationEnabled,
-      guestAddEnabled: !!res.features?.guestAddEnabled,
-      syntaxHighlightingEnabled: !!res.features?.syntaxHighlightingEnabled,
-      markdownEnabled: !!res.features?.markdownEnabled,
-      showPwaPrompt: !!res.features?.showPwaPrompt,
-    }
+    syncFeatures(res)
+    applyAppTheming(state.features)
     state.user = res.user || null
     state.pendingApprovals = res.pendingApprovals || 0
+    if (state.user) {
+      await loadAndApplyUserPreferences()
+    }
     state.webhookEvents = res.webhookEvents?.length ? [...res.webhookEvents] : ['approval.requested']
     state.headerLinks = res.headerLinks?.length ? res.headerLinks.map((l) => ({
       id: l.id,

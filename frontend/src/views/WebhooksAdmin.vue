@@ -97,8 +97,11 @@ watch(webhooks, syncEdits, { deep: true })
 <template>
   <Section title="Webhooks" subtitle="HTTP callbacks for Faridoon events" :padding="false">
     <template #toolbar>
+      <RouterLink :to="{ name: 'controlPanel' }" class="button inline-icon neutral">
+        <span>System Control Panel</span>
+      </RouterLink>
       <RouterLink
-        to="/admin/webhooks/create"
+        :to="{ name: 'webhookCreate' }"
         class="button"
         title="Add webhook"
         aria-label="Add webhook"

@@ -24,7 +24,7 @@ async function submit() {
       openInNewTab: openInNewTab.value,
     })
     await loadInit()
-    router.push('/admin/header-links')
+    router.push({ name: 'headerLinks' })
   } catch (e) {
     error.value = e.message || String(e)
   }
@@ -34,7 +34,7 @@ async function submit() {
 <template>
   <Section title="Add header link" :padding="true">
     <template #toolbar>
-      <RouterLink to="/admin/header-links" class="button">Back</RouterLink>
+      <RouterLink :to="{ name: 'headerLinks' }" class="button">Back</RouterLink>
     </template>
     <form class="form-stack" @submit.prevent="submit">
       <label>
@@ -60,7 +60,7 @@ async function submit() {
       <p v-if="error" class="form-error">{{ error }}</p>
       <div class="quote-edit-actions">
         <button type="submit" class="button">Create</button>
-        <RouterLink to="/admin/header-links" class="button">Cancel</RouterLink>
+        <RouterLink :to="{ name: 'headerLinks' }" class="button">Cancel</RouterLink>
       </div>
     </form>
   </Section>

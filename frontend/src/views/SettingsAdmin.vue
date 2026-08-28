@@ -4,10 +4,11 @@ import Section from 'picocrank/vue/components/Section.vue'
 import FormLayout from 'picocrank/vue/components/FormLayout.vue'
 import FormField from 'picocrank/vue/components/FormField.vue'
 import RadioGroup from 'picocrank/vue/components/RadioGroup.vue'
-import CustomThemeField from '../components/CustomThemeField.vue'
+import NotificationBlock from 'picocrank/vue/components/NotificationBlock.vue'
+import { useCustomTheme } from 'picocrank/vue/composables/useCustomTheme.js'
 import { client } from '../composables/client'
-import { loadInit } from '../composables/useInit'
-import { applySiteThemes } from '../composables/useSiteTheme.js'
+import { initState, loadInit } from '../composables/useInit'
+import { applyAppTheming } from '../composables/applyAppTheming.js'
 
 const cvars = ref([])
 const edits = reactive({})
@@ -16,16 +17,23 @@ const error = ref('')
 const success = ref('')
 const savingSection = ref('')
 
+const { availableThemes, themeLabels } = useCustomTheme()
+
 const booleanOptions = [
   { label: 'On', value: true },
   { label: 'Off', value: false },
 ]
 
-const themeModeOptions = [
-  { label: 'Auto', value: 'auto' },
-  { label: 'Light', value: 'light' },
-  { label: 'Dark', value: 'dark' },
+const themeControlOptions = [
+  { label: 'System preference', value: 'system' },
+  { label: 'User preference', value: 'user' },
 ]
+
+const themeKeys = new Set([
+  'theme_color_scheme_switcher_enabled',
+  'theme_name',
+  'theme_control',
+])
 
 function labelFor(cvar) {
   return cvar.title || cvar.key.replace(/_/g, ' ')
@@ -39,11 +47,11 @@ function markDirty(sectionName) {
   dirtySections[sectionName] = true
 }
 
-function previewSiteTheme(sectionName) {
-  markDirty(sectionName)
-  applySiteThemes({
-    themeMode: edits.theme_mode?.valueString || 'auto',
-    customTheme: edits.custom_theme?.valueString || '',
+function previewThemeSection() {
+  markDirty('Theme')
+  applyAppTheming({
+    themeName: edits.theme_name?.valueString || '',
+    themeControl: edits.theme_control?.valueString || 'user',
   })
 }
 
@@ -57,6 +65,9 @@ const categories = computed(() => {
   const groups = []
   const indexByName = {}
   for (const c of cvars.value) {
+    if (themeKeys.has(c.key)) {
+      continue
+    }
     const name = c.category || 'Other'
     if (indexByName[name] === undefined) {
       indexByName[name] = groups.length
@@ -66,6 +77,8 @@ const categories = computed(() => {
   }
   return groups
 })
+
+const themeCvars = computed(() => cvars.value.filter((c) => themeKeys.has(c.key)))
 
 function syncEdits() {
   for (const key of Object.keys(edits)) delete edits[key]
@@ -113,6 +126,9 @@ async function saveSection(group) {
     success.value = `${group.name} settings saved.`
     await load()
     await loadInit()
+    if (group.name === 'Theme') {
+      applyAppTheming(initState.features)
+    }
   } catch (e) {
     error.value = e.message || String(e)
   } finally {
@@ -120,15 +136,95 @@ async function saveSection(group) {
   }
 }
 
+const themeSection = computed(() => ({
+  name: 'Theme',
+  cvars: themeCvars.value,
+}))
+
 onMounted(load)
 </script>
 
 <template>
   <Section title="Settings" subtitle="Configuration variables" :padding="true">
+    <template #toolbar>
+      <router-link :to="{ name: 'controlPanel' }" class="button inline-icon neutral">
+        <span>System Control Panel</span>
+      </router-link>
+    </template>
     <p>Site-wide options stored in the database. Edits apply after you save.</p>
     <p v-if="error" class="form-error">{{ error }}</p>
-    <p v-if="success" class="flash-success">{{ success }}</p>
+    <NotificationBlock
+      v-if="success"
+      type="success"
+      :message="success"
+    />
     <p v-if="cvars.length === 0 && !error" class="subtle">No configuration variables found.</p>
+  </Section>
+
+  <Section
+    v-if="themeSection.cvars.length"
+    title="Theme"
+    subtitle="Appearance and theme policy"
+    :padding="true"
+  >
+    <FormLayout @submit.prevent="saveSection(themeSection)">
+      <FormField
+        label="Color scheme switcher"
+        fake
+        description="Show the auto/light/dark control in the header."
+      >
+        <RadioGroup
+          v-model="edits.theme_color_scheme_switcher_enabled.boolValue"
+          name="settings-theme-color-scheme-switcher"
+          variant="boolean"
+          :options="booleanOptions"
+          aria-label="Color scheme switcher"
+          @change="previewThemeSection"
+        />
+      </FormField>
+
+      <FormField
+        label="Theme name"
+        for="settings-theme-name"
+        description="Drop-in CSS theme for the app."
+      >
+        <select
+          id="settings-theme-name"
+          v-model="edits.theme_name.valueString"
+          @change="previewThemeSection"
+        >
+          <option value="">Default (Femtocrank only)</option>
+          <option v-for="name in availableThemes" :key="name" :value="name">
+            {{ themeLabels[name] || name }}
+          </option>
+        </select>
+      </FormField>
+
+      <FormField
+        label="Theme control"
+        fake
+        description="System preference forces the theme name for all users. User preference uses this theme as the default; users may override on User Preferences."
+      >
+        <RadioGroup
+          v-model="edits.theme_control.valueString"
+          name="settings-theme-control"
+          variant="list"
+          :options="themeControlOptions"
+          aria-label="Theme control"
+          @change="previewThemeSection"
+        />
+      </FormField>
+
+      <template #actions>
+        <button
+          type="submit"
+          class="button good"
+          :disabled="!dirtySections.Theme || savingSection === 'Theme'"
+        >
+          {{ savingSection === 'Theme' ? 'Saving…' : 'Save' }}
+        </button>
+      </template>
+    </FormLayout>
   </Section>
 
   <Section
@@ -140,39 +236,7 @@ onMounted(load)
     <FormLayout @submit.prevent="saveSection(group)">
       <template v-for="cvar in group.cvars" :key="cvar.key">
         <FormField
-          v-if="cvar.key === 'theme_mode'"
-          :label="labelFor(cvar)"
-          fake
-        >
-          <div>
-            <RadioGroup
-              v-model="edits[cvar.key].valueString"
-              :name="fieldId(cvar)"
-              variant="list"
-              :options="themeModeOptions"
-              :aria-label="labelFor(cvar)"
-              @change="previewSiteTheme(group.name)"
-            />
-            <p v-if="cvar.description" class="subtle">{{ cvar.description }}</p>
-          </div>
-        </FormField>
-
-        <FormField
-          v-else-if="cvar.key === 'custom_theme'"
-          :label="labelFor(cvar)"
-          fake
-        >
-          <div>
-            <CustomThemeField
-              v-model="edits[cvar.key].valueString"
-              @change="previewSiteTheme(group.name)"
-            />
-            <p v-if="cvar.description" class="subtle">{{ cvar.description }}</p>
-          </div>
-        </FormField>
-
-        <FormField
-          v-else-if="cvar.mainType === 'string'"
+          v-if="cvar.mainType === 'string'"
           :label="labelFor(cvar)"
           :for="fieldId(cvar)"
         >

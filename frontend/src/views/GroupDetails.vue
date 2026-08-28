@@ -53,7 +53,7 @@ async function revoke(permissionId) {
 async function destroy() {
   if (!confirm('Delete this group?')) return
   await client.deleteGroup({ id: Number(props.id) })
-  router.push('/admin/users')
+  router.push({ name: 'iamUsers' })
 }
 
 onMounted(load)
@@ -62,7 +62,7 @@ onMounted(load)
 <template>
   <Section :title="group ? group.title : 'Group'" :padding="true">
     <template #toolbar>
-      <RouterLink to="/admin/users" class="button">Back</RouterLink>
+      <RouterLink :to="{ name: 'iamUsers' }" class="button">Back</RouterLink>
     </template>
 
     <p v-if="error" class="form-error">{{ error }}</p>
@@ -105,10 +105,10 @@ onMounted(load)
   <Section v-if="group" title="Members" :padding="false">
     <Table v-if="members.length > 0" :data="memberRows" :headers="memberHeaders" :show-pagination="members.length > 10">
       <template #cell-username="{ row, value }">
-        <RouterLink :to="`/admin/users/${row.id}`">{{ value }}</RouterLink>
+        <RouterLink :to="{ name: 'iamUser', params: { id: String(row.id) } }">{{ value }}</RouterLink>
       </template>
       <template #cell-actions="{ row }">
-        <RouterLink :to="`/admin/users/${row.id}`">View</RouterLink>
+        <RouterLink :to="{ name: 'iamUser', params: { id: String(row.id) } }">View</RouterLink>
       </template>
     </Table>
     <p v-else class="padding subtle">No members in this group.</p>

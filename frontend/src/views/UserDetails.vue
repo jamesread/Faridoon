@@ -47,15 +47,15 @@ async function destroy() {
   if (isSelf.value) return
   if (!confirm('Delete this user?')) return
   await client.deleteUser({ id: Number(props.id) })
-  router.push('/admin/users')
+  router.push({ name: 'iamUsers' })
 }
 </script>
 
 <template>
   <Section :title="user ? user.username : 'User'" :padding="true">
     <template #toolbar>
-      <RouterLink to="/admin/users" class="button">Back</RouterLink>
-      <RouterLink v-if="user" :to="`/admin/users/${user.id}/edit`" class="button">Edit</RouterLink>
+      <RouterLink :to="{ name: 'iamUsers' }" class="button">Back</RouterLink>
+      <RouterLink v-if="user" :to="{ name: 'iamUserEdit', params: { id: String(user.id) } }" class="button">Edit</RouterLink>
     </template>
 
     <p v-if="error" class="form-error">{{ error }}</p>
@@ -68,7 +68,7 @@ async function destroy() {
 
       <dt>Group</dt>
       <dd>
-        <RouterLink :to="`/admin/groups/${user.groupId}`">{{ user.groupTitle || `Group #${user.groupId}` }}</RouterLink>
+        <RouterLink :to="{ name: 'iamGroup', params: { id: String(user.groupId) } }">{{ user.groupTitle || `Group #${user.groupId}` }}</RouterLink>
       </dd>
 
       <dt>Admin</dt>

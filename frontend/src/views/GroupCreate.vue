@@ -13,7 +13,7 @@ async function submit() {
   try {
     const res = await client.createGroup({ title: title.value })
     const id = res.group?.id
-    router.push(id ? `/admin/groups/${id}` : '/admin/users')
+    router.push(id ? { name: 'iamGroup', params: { id: String(id) } } : { name: 'iamUsers' })
   } catch (e) {
     error.value = e.message || String(e)
   }
@@ -23,7 +23,7 @@ async function submit() {
 <template>
   <Section title="Create group" :padding="true">
     <template #toolbar>
-      <RouterLink to="/admin/users" class="button">Back</RouterLink>
+      <RouterLink :to="{ name: 'iamUsers' }" class="button">Back</RouterLink>
     </template>
     <form class="form-stack" @submit.prevent="submit">
       <label>
@@ -33,7 +33,7 @@ async function submit() {
       <p v-if="error" class="form-error">{{ error }}</p>
       <div class="quote-edit-actions">
         <button type="submit" class="button">Create</button>
-        <RouterLink to="/admin/users" class="button">Cancel</RouterLink>
+        <RouterLink :to="{ name: 'iamUsers' }" class="button">Cancel</RouterLink>
       </div>
     </form>
   </Section>

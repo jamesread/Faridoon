@@ -15,9 +15,9 @@
     "@connectrpc/connect-web": "^2.1.2",
     "@hugeicons/core-free-icons": "^4.3.0",
     "@hugeicons/vue": "^1.0.8",
-    "picocrank": "^1.25.2",
-    "vue": "^3.5.41",
-    "vue-router": "^5.2.0"
+    "picocrank": "^1.28.0",
+    "vue": "^3.5.42",
+    "vue-router": "^5.3.0"
   },
   "devDependencies": {
     "@resvg/resvg-js": "^2.6.2",
