@@ -4,7 +4,7 @@
 FROM golang:1.25-alpine AS sqlmigrate
 RUN go install github.com/rubenv/sql-migrate/sql-migrate@v1.8.1
 
-FROM alpine:3.20
+FROM alpine:3.24
 LABEL org.opencontainers.image.source=https://github.com/jamesread/Faridoon
 RUN apk add --no-cache ca-certificates
 COPY --from=sqlmigrate /go/bin/sql-migrate /usr/bin/sql-migrate
