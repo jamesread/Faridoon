@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	connectrpc.com/connect v1.20.0
 	github.com/alexedwards/argon2id v1.0.0
-	github.com/go-sql-driver/mysql v1.10.0
+	github.com/go-sql-driver/mysql v1.10.1
 	github.com/google/uuid v1.6.0
 	github.com/jamesread/httpauthshim v0.1.0
 	github.com/knadh/koanf/parsers/yaml v1.1.1
