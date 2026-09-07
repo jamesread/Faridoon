@@ -7,14 +7,14 @@ require (
 	github.com/alexedwards/argon2id v1.0.0
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/google/uuid v1.6.0
-	github.com/jamesread/httpauthshim v0.1.0
+	github.com/jamesread/httpauthshim v0.2.0
 	github.com/knadh/koanf/parsers/yaml v1.1.1
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/v2 v2.3.6
 	github.com/microcosm-cc/bluemonday v1.0.27
 	github.com/prometheus/client_golang v1.24.1
 	github.com/sirupsen/logrus v1.10.2
-	github.com/yuin/goldmark v1.8.5
+	github.com/yuin/goldmark v1.8.6
 	golang.org/x/crypto v0.56.0
 	google.golang.org/protobuf v1.36.12
 )

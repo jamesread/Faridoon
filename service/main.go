@@ -228,10 +228,10 @@ func authenticatedFromSession(u *authpublic.AuthenticatedUser, sid string, sess 
 }
 
 func lookupFaridoonSession(ac *authpublic.AuthCheckingContext, sid string) *sessions.UserSession {
-	if ac.Sessions != nil {
-		return ac.Sessions.GetSession("faridoon", sid)
+	if ac.Sessions == nil {
+		return nil
 	}
-	return sessions.GetUserSession("faridoon", sid)
+	return ac.Sessions.GetSession("faridoon", sid)
 }
 
 func withRequestContext(h http.Handler) http.Handler {
