@@ -7,7 +7,7 @@
   },
   "devDependencies": {
     "mocha": "^12.0.0",
-    "mysql2": "^3.24.3",
+    "mysql2": "^3.24.4",
     "selenium-webdriver": "^4.48.0"
   }
 }

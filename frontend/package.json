@@ -13,7 +13,7 @@
   "dependencies": {
     "@connectrpc/connect": "^2.2.0",
     "@connectrpc/connect-web": "^2.2.0",
-    "@hugeicons/core-free-icons": "^4.3.0",
+    "@hugeicons/core-free-icons": "^4.3.2",
     "@hugeicons/vue": "^1.0.8",
     "picocrank": "^1.28.1",
     "vue": "^3.5.42",
