@@ -1,7 +1,7 @@
 # Built by goreleaser (binary at context root) or:
 #   make generate && make frontend && make service
 #   cp service/faridoon-service ./faridoon-service && docker build -t faridoon .
-FROM golang:1.25-alpine AS sqlmigrate
+FROM golang:1.27-alpine AS sqlmigrate
 RUN go install github.com/rubenv/sql-migrate/sql-migrate@v1.8.1
 
 FROM alpine:3.24
