@@ -28,7 +28,9 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version-file: service/go.mod
+          cache: true
+          cache-dependency-path: service/go.sum
 
       - uses: actions/setup-node@v4
         with:
@@ -43,6 +45,8 @@ jobs:
       - name: Generate and test
         run: |
           make generate
+          (cd service && go mod tidy)
+          git diff --exit-code service/go.mod service/go.sum
           make -wC service test
           make -wC service build
           make -wC frontend build
