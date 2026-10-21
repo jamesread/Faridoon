@@ -17,3 +17,5 @@ frontend/gen
 Thumbs.db
 site/
 .vite
+var/marketing/screenshots/tmp/
+var/marketing/screenshots/scripts/__pycache__/

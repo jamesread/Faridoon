@@ -14,11 +14,44 @@ Documentation for how to install and use Faridoon is available at https://jamesr
 
 ## Screenshots
 
-Note the screenshots below contain quotes from the site that inspired this self hosted project - bash.org - which is now offline. There are several mirrors available via search engines. These quotes were used because they've been shared wildly for over 2 decades, and they're pretty funny :-)
+### Latest quotes
 
-![Faridoon Mobile Phone Screenshot](var/mockupLaptop.png)
+![Latest quotes](var/marketing/screenshots/quotes.png)
 
-![Faridoon Desktop Screenshot](var/mockupMobilePhone.png)
+The front page lists the newest quotes, with each chat username highlighted in its own colour. Signed-in users can vote quotes up or down.
+
+### Quote permalink
+
+![Quote permalink](var/marketing/screenshots/quote.png)
+
+Every quote has its own page, so a favourite exchange is easy to link to and share.
+
+### Add a quote
+
+![Add a quote](var/marketing/screenshots/add-quote.png)
+
+Paste a chat log and a live preview shows exactly how the quote will look before it is submitted.
+
+### Approval queue
+
+![Approval queue](var/marketing/screenshots/approvals.png)
+
+Quotes from guests and regular users wait in an approval queue, where moderators can approve, reject or tidy them up before they go live.
+
+### Settings
+
+![Settings](var/marketing/screenshots/settings.png)
+
+Admins configure the site from the browser, including the site title, voting, registration, guest submissions and theme, with no config files to edit.
+
+### Dark mode
+
+![Dark mode](var/marketing/screenshots/quotes-dark.png)
+
+A built-in dark theme, which users can switch to from the header.
+
+Screenshots use fictional test data and are regenerated with `make screenshots`
+(see [`var/marketing/screenshots`](var/marketing/screenshots/README.md)).
 
 ## Getting Started
 

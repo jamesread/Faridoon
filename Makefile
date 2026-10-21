@@ -1,4 +1,4 @@
-.PHONY: all generate build test lint codestyle service-codestyle install setup service frontend integration-test docs clean release docker-amd64 docker-arm64 docker-manifest migrate
+.PHONY: all generate build test lint codestyle service-codestyle install setup service frontend integration-test docs screenshots clean release docker-amd64 docker-arm64 docker-manifest migrate
 
 all: build
 
@@ -46,6 +46,10 @@ integration-test: service
 
 docs:
 	mkdocs build
+
+# Needs podman/docker and a browser, so it is not part of `all`.
+screenshots:
+	$(MAKE) -wC var/marketing/screenshots
 
 clean:
 	rm -rf service/faridoon-service frontend/dist frontend/gen service/gen

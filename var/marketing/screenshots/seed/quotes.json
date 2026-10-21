@@ -1,0 +1,29 @@
+[
+  {
+    "content": "<kestrel> i finally automated my morning routine\n<kestrel> the script makes coffee, reads my email and updates my status\n<pebble> nice, so what do you do now?\n<kestrel> watch the logs to make sure it's having a good day"
+  },
+  {
+    "content": "<marlowe> who named the production database \"test\"?\n<juniper> past me\n<juniper> past me was very optimistic"
+  },
+  {
+    "content": "<ozzie> the build is green!\n<ozzie> wait, no, that's the colourblind theme"
+  },
+  {
+    "content": "Any sufficiently old TODO comment is indistinguishable from documentation.\n- a tired maintainer"
+  },
+  {
+    "content": "<tamsin> how many developers does it take to change a lightbulb?\n<rook> none, that's a hardware problem\n<tamsin> how many hardware engineers then?\n<rook> they'll fix it in software"
+  },
+  {
+    "content": "<pebble> my code worked first time\n<marlowe> screenshot it, nobody will believe you\n<pebble> i would but the screenshot tool is broken"
+  },
+  {
+    "content": "<juniper> i've been staring at this bug for three hours\n<rook> have you tried explaining it to the rubber duck?\n<juniper> the duck has asked to be reassigned"
+  },
+  {
+    "content": "<kestrel> i deleted 400 lines of code today\n<tamsin> what did they do?\n<kestrel> no idea, and now nobody ever will"
+  },
+  {
+    "content": "<ozzie> brb, restarting my router\n<ozzie> ok i'm back\n<pebble> you were gone for 40 minutes\n<ozzie> it was a big router"
+  }
+]

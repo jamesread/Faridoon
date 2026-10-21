@@ -1,0 +1,16 @@
+# Config for the throwaway marketing-screenshot service (see Makefile).
+# Credentials only exist inside the temporary MySQL container.
+configVersion: 1
+listen: "127.0.0.1:18480"
+siteTitle: Faridoon
+
+database:
+  host: 127.0.0.1
+  port: 13306
+  name: faridoon
+  user: faridoon
+  password: faridoon-demo
+
+auth:
+  localSessionCookieName: faridoon-sid
+  baseDir: ./auth

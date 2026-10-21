@@ -1,0 +1,49 @@
+{
+  "1": {
+    "riley": 1,
+    "sam": 1,
+    "jordan": 1,
+    "casey": 1
+  },
+  "2": {
+    "riley": 1,
+    "sam": 1,
+    "drew": 1
+  },
+  "3": {
+    "jordan": 1,
+    "casey": -1
+  },
+  "4": {
+    "riley": 1,
+    "sam": 1,
+    "jordan": 1,
+    "casey": 1,
+    "drew": 1
+  },
+  "5": {
+    "sam": 1,
+    "drew": 1
+  },
+  "6": {
+    "riley": 1,
+    "jordan": 1,
+    "casey": 1
+  },
+  "7": {
+    "riley": 1,
+    "sam": 1,
+    "jordan": 1,
+    "casey": 1,
+    "drew": 1
+  },
+  "8": {
+    "casey": 1,
+    "drew": 1,
+    "sam": -1
+  },
+  "9": {
+    "riley": 1,
+    "jordan": 1
+  }
+}
