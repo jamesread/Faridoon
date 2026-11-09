@@ -4,9 +4,10 @@ go 1.26.0
 
 require (
 	connectrpc.com/connect v1.21.0
-	github.com/alexedwards/argon2id v1.0.0
 	github.com/go-sql-driver/mysql v1.10.1
 	github.com/google/uuid v1.6.0
+	github.com/jamesread/armature-iam v1.0.2-0.20261109144521-2ed2864bdeea
+	github.com/jamesread/golure v0.0.0-20261109144715-86ce70a3f84b
 	github.com/jamesread/httpauthshim v0.2.0
 	github.com/knadh/koanf/parsers/yaml v1.1.1
 	github.com/knadh/koanf/providers/file v1.2.1
@@ -21,6 +22,7 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.2.0 // indirect
+	github.com/alexedwards/argon2id v1.0.0 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect

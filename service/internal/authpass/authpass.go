@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"strings"
 
-	"github.com/alexedwards/argon2id"
+	"github.com/jamesread/armature-iam/password"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -35,7 +35,7 @@ func isBcrypt(stored string) bool {
 }
 
 func verifyArgon2(plain, stored string) bool {
-	ok, err := argon2id.ComparePasswordAndHash(plain, stored)
+	ok, err := password.Verify(stored, plain)
 	return err == nil && ok
 }
 
@@ -51,12 +51,12 @@ func verifyLegacySHA1(plain, stored string) bool {
 	return strings.EqualFold(hex.EncodeToString(sum[:]), stored)
 }
 
-// NeedsRehash reports whether stored should be upgraded to argon2id.
+// NeedsRehash reports whether stored should be upgraded to the current argon2id parameters.
 func NeedsRehash(stored string) bool {
-	return !strings.HasPrefix(strings.TrimSpace(stored), "$argon2id$")
+	return password.NeedsRehash(strings.TrimSpace(stored))
 }
 
 // Hash returns an argon2id hash of plain.
 func Hash(plain string) (string, error) {
-	return argon2id.CreateHash(plain, argon2id.DefaultParams)
+	return password.Hash(plain)
 }

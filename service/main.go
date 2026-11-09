@@ -7,11 +7,16 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/jamesread/golure/pkg/dirs"
+	"github.com/jamesread/golure/pkg/httpserve"
+	"github.com/jamesread/golure/pkg/spa"
 	auth "github.com/jamesread/httpauthshim"
 	"github.com/jamesread/httpauthshim/authpublic"
 	"github.com/jamesread/httpauthshim/sessions"
@@ -121,25 +126,24 @@ func buildMux(srv *FaridoonServer) *http.ServeMux {
 	mux.Handle("/metrics", promhttp.Handler())
 
 	if staticDir := getStaticDir(); staticDir != "" {
-		mux.Handle("/", spaFileServer(staticDir))
+		mux.Handle("/", spa.Handler(staticDir, spa.Options{NoCache: isServiceWorkerAsset}))
 		logrus.Infof("Serving SPA from %s", staticDir)
 	}
 	return mux
 }
 
 func serveHTTP(addr string, handler http.Handler) error {
-	protocols := new(http.Protocols)
-	protocols.SetHTTP1(true)
-	protocols.SetUnencryptedHTTP2(true)
-	srv := &http.Server{
-		Addr:              addr,
-		Handler:           handler,
-		Protocols:         protocols,
-		ReadHeaderTimeout: 10 * time.Second,
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      60 * time.Second,
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
+	cfg := httpserve.Config{
+		Addr:         addr,
+		Handler:      handler,
+		H2C:          true,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 60 * time.Second,
 	}
-	return srv.ListenAndServe()
+	return httpserve.Run(ctx, httpserve.New(cfg), cfg)
 }
 
 func openDB(cfg *config.Config) (*sql.DB, error) {
@@ -257,33 +261,11 @@ func getStaticDir() string {
 }
 
 func findStaticDirCandidate() string {
-	for _, c := range []string{"../frontend/dist", "./frontend/dist", "/app/frontend"} {
-		if fi, err := os.Stat(c); err == nil && fi.IsDir() {
-			return c
-		}
+	search := dirs.Search{Name: "static", Paths: []string{"../frontend/dist", "./frontend/dist", "/app/frontend"}}
+	if found, ok := dirs.FindDirectories(search).First(); ok {
+		return found.Path
 	}
 	return ""
-}
-
-func spaFileServer(root string) http.Handler {
-	fs := http.FileServer(http.Dir(root))
-	indexPath := filepath.Join(root, "index.html")
-	rootAbs, _ := filepath.Abs(root)
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet && r.Method != http.MethodHead {
-			http.NotFound(w, r)
-			return
-		}
-		if isServiceWorkerAsset(r.URL.Path) {
-			w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
-		}
-		target := spaTarget(root, rootAbs, r.URL.Path)
-		if target == indexPath {
-			http.ServeFile(w, r, indexPath)
-			return
-		}
-		fs.ServeHTTP(w, r)
-	})
 }
 
 func isServiceWorkerAsset(urlPath string) bool {
@@ -292,33 +274,4 @@ func isServiceWorkerAsset(urlPath string) bool {
 		return true
 	}
 	return strings.HasPrefix(base, "workbox-") && strings.HasSuffix(base, ".js")
-}
-
-func spaTarget(root, rootAbs, urlPath string) string {
-	indexPath := filepath.Join(root, "index.html")
-	path := filepath.Clean(urlPath)
-	if isRootPath(path) {
-		return indexPath
-	}
-	fpath := filepath.Join(root, path)
-	if !isSafeRegularFile(fpath, rootAbs) {
-		return indexPath
-	}
-	return fpath
-}
-
-func isRootPath(path string) bool {
-	return path == "/" || path == "."
-}
-
-func isSafeRegularFile(fpath, rootAbs string) bool {
-	abs, err := filepath.Abs(fpath)
-	if err != nil {
-		return false
-	}
-	if !strings.HasPrefix(abs, rootAbs) {
-		return false
-	}
-	fi, err := os.Stat(fpath)
-	return err == nil && fi.Mode().IsRegular()
 }

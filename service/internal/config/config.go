@@ -3,8 +3,9 @@ package config
 import (
 	"os"
 	"path/filepath"
-	"strings"
 
+	"github.com/jamesread/golure/pkg/dirs"
+	"github.com/jamesread/golure/pkg/listenaddr"
 	"github.com/jamesread/httpauthshim/authpublic"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
@@ -37,39 +38,13 @@ func SetConfigDir(dir string) {
 }
 
 func GetConfigPath() string {
-	if p := overrideConfigPath(); p != "" {
-		return p
+	var paths []string
+	if configDirOverride != "" {
+		paths = append(paths, filepath.Join(configDirOverride, "config.yaml"))
 	}
-	return firstExistingPath([]string{
-		"./config.yaml",
-		"./config/config.yaml",
-		os.Getenv("FARIDOON_CONFIG_FILE"),
-		"/config/config.yaml",
-	})
-}
-
-func overrideConfigPath() string {
-	if configDirOverride == "" {
-		return ""
-	}
-	return existingPath(filepath.Join(configDirOverride, "config.yaml"))
-}
-
-func firstExistingPath(candidates []string) string {
-	for _, p := range candidates {
-		if p == "" {
-			continue
-		}
-		if found := existingPath(p); found != "" {
-			return found
-		}
-	}
-	return ""
-}
-
-func existingPath(p string) string {
-	if _, err := os.Stat(p); err == nil {
-		return p
+	paths = append(paths, "./config.yaml", "./config/config.yaml", os.Getenv("FARIDOON_CONFIG_FILE"), "/config/config.yaml")
+	if found, ok := dirs.FindFiles(dirs.Search{Name: "config", Paths: paths}).First(); ok {
+		return found.Path
 	}
 	return ""
 }
@@ -142,20 +117,11 @@ func setIfNonEmpty(dst *string, v string) {
 // ListenAddr returns the bind address: $PORT if set, otherwise cfg.Listen (default :8080).
 // PORT may be a bare port ("8080") or a full address (":8080" / "0.0.0.0:8080").
 func ListenAddr(cfg *Config) string {
-	if port := strings.TrimSpace(os.Getenv("PORT")); port != "" {
-		return normalizePort(port)
+	configured := ""
+	if cfg != nil {
+		configured = cfg.Listen
 	}
-	if cfg != nil && cfg.Listen != "" {
-		return cfg.Listen
-	}
-	return ":8080"
-}
-
-func normalizePort(port string) string {
-	if strings.Contains(port, ":") {
-		return port
-	}
-	return ":" + port
+	return listenaddr.Resolve(configured, ":8080")
 }
 
 func envOr(key, fallback string) string {
