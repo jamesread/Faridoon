@@ -6,7 +6,7 @@ migrate:
 	$(MAKE) -C database/mysql
 
 generate:
-	cd protocol/proto && buf generate --template ../buf.gen.yaml
+	$(MAKE) -wC protocol generate
 
 build: generate service frontend
 

@@ -62,7 +62,7 @@ Documentation is available at: https://jamesread.github.io/Faridoon/ , the recom
 * Go service with ConnectRPC
 * Vue 3 + Vue Router + [picocrank](https://www.npmjs.com/package/picocrank) UI components
 * MySQL schema managed with **sql-migrate**
-* Authentication via [httpauthshim](https://github.com/jamesread/httpauthshim) (sessions; users stored in MySQL)
+* Authentication via [armature-httpauthshim](https://github.com/jamesread/armature-httpauthshim) (sessions; users stored in MySQL)
 
 ## Features
 

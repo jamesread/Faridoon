@@ -101,7 +101,7 @@ Consumers verify by recomputing HMAC-SHA256 over the request body with the share
 
 ## Auth (`auth`)
 
-httpauthshim session settings. Sample keys:
+armature-httpauthshim session settings. Sample keys:
 
 - `localSessionCookieName` (e.g. `faridoon-sid`)
 - `baseDir` (session storage directory)

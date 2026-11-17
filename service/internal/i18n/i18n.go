@@ -1,5 +1,7 @@
 package i18n
 
+import "slices"
+
 // AvailableLanguageCodes returns BCP 47 language tags supported by the UI.
 // Faridoon is English-only today; extend when vue-i18n locales are added.
 func AvailableLanguageCodes() []string {
@@ -10,10 +12,5 @@ func IsSupportedLanguage(code string) bool {
 	if code == "" {
 		return true
 	}
-	for _, available := range AvailableLanguageCodes() {
-		if available == code {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(AvailableLanguageCodes(), code)
 }

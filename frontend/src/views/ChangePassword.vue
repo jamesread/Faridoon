@@ -34,7 +34,7 @@ async function save() {
     currentPassword.value = ''
     newPassword.value = ''
     confirmPassword.value = ''
-  } catch (e) {
+  } catch {
     error.value = 'Could not change password. Check your current password and try again.'
   } finally {
     saving.value = false

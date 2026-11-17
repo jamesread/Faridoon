@@ -2,6 +2,7 @@ package cvar
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 )
 
@@ -33,12 +34,7 @@ func IsAvailableThemeName(name string) bool {
 	if name == "" {
 		return true
 	}
-	for _, n := range availableThemeNames {
-		if n == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(availableThemeNames, name)
 }
 
 func IsValidCustomThemeID(id string) bool {

@@ -143,7 +143,7 @@ func registerGroupID(count int) int {
 	return 2
 }
 
-func (s *FaridoonServer) registerSession(ctx context.Context, id int, username string, groupID int) (*sessionUser, string, error) {
+func (s *FaridoonServer) registerSession(ctx context.Context, id int, username string, groupID int) (*sessionUser, string) {
 	row, _ := s.store.FindUser(ctx, id)
 	privs, _ := s.store.UserPrivileges(ctx, id, groupID)
 	sid := newSessionID()
@@ -153,7 +153,7 @@ func (s *FaridoonServer) registerSession(ctx context.Context, id int, username s
 		groupTitle = row.GroupTitle
 	}
 	su := &sessionUser{Username: username, GroupTitle: groupTitle, Privileges: privs, ID: id, GroupID: groupID}
-	return su, sid, nil
+	return su, sid
 }
 
 func (s *FaridoonServer) ensureUsernameAvailable(ctx context.Context, username string) error {
@@ -207,10 +207,7 @@ func (s *FaridoonServer) Register(ctx context.Context, req *connect.Request[fari
 	if createErr != nil {
 		return nil, createErr
 	}
-	su, sid, err := s.registerSession(ctx, id, username, groupID)
-	if err != nil {
-		return nil, connect.NewError(connect.CodeInternal, err)
-	}
+	su, sid := s.registerSession(ctx, id, username, groupID)
 	s.audit(ctx, su, "user.register", "user", id, detailf("group=%d", groupID))
 	res := connect.NewResponse(&faridoonv1.RegisterResponse{User: s.toProtoUser(su)})
 	s.attachSessionCookie(res.Header(), sid)
@@ -248,10 +245,7 @@ func (s *FaridoonServer) ListQuotes(ctx context.Context, req *connect.Request[fa
 }
 
 func (s *FaridoonServer) listQuotesParams(ctx context.Context, msg *faridoonv1.ListQuotesRequest) (page int, order, query string, perPage int) {
-	page = int(msg.Page)
-	if page < 1 {
-		page = 1
-	}
+	page = max(int(msg.Page), 1)
 	order = msg.Order
 	if order == "" {
 		order = "latest"
@@ -514,7 +508,7 @@ func (s *FaridoonServer) ApproveQuote(ctx context.Context, req *connect.Request[
 	if err != nil {
 		return nil, err
 	}
-	if _, pendErr := s.requirePendingQuote(ctx, int(req.Msg.Id)); pendErr != nil {
+	if pendErr := s.requirePendingQuote(ctx, int(req.Msg.Id)); pendErr != nil {
 		return nil, pendErr
 	}
 	if approveErr := s.store.ApproveQuote(ctx, int(req.Msg.Id)); approveErr != nil {
@@ -529,7 +523,7 @@ func (s *FaridoonServer) RejectQuote(ctx context.Context, req *connect.Request[f
 	if err != nil {
 		return nil, err
 	}
-	if _, pendErr := s.requirePendingQuote(ctx, int(req.Msg.Id)); pendErr != nil {
+	if pendErr := s.requirePendingQuote(ctx, int(req.Msg.Id)); pendErr != nil {
 		return nil, pendErr
 	}
 	if delErr := s.store.DeleteQuote(ctx, int(req.Msg.Id)); delErr != nil {
@@ -539,13 +533,13 @@ func (s *FaridoonServer) RejectQuote(ctx context.Context, req *connect.Request[f
 	return connect.NewResponse(&emptypb.Empty{}), nil
 }
 
-func (s *FaridoonServer) requirePendingQuote(ctx context.Context, id int) (*store.QuoteRow, error) {
+func (s *FaridoonServer) requirePendingQuote(ctx context.Context, id int) error {
 	raw, findErr := s.store.FindQuoteRaw(ctx, id)
 	if findErr != nil || raw == nil {
-		return nil, connect.NewError(connect.CodeNotFound, fmt.Errorf("quote not found"))
+		return connect.NewError(connect.CodeNotFound, fmt.Errorf("quote not found"))
 	}
 	if raw.Approved {
-		return nil, connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("quote is already approved"))
+		return connect.NewError(connect.CodeFailedPrecondition, fmt.Errorf("quote is already approved"))
 	}
-	return raw, nil
+	return nil
 }

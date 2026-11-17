@@ -83,7 +83,7 @@ func signatureAuthorFromLine(lastLine string) (author string, ok bool) {
 
 func (f *Formatter) parseLines(content string) []Line {
 	var lines []Line
-	for _, line := range strings.Split(content, "\n") {
+	for line := range strings.SplitSeq(content, "\n") {
 		lines = append(lines, f.parseLine(line))
 	}
 	return lines

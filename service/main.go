@@ -12,9 +12,9 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
-	auth "github.com/jamesread/httpauthshim"
-	"github.com/jamesread/httpauthshim/authpublic"
-	"github.com/jamesread/httpauthshim/sessions"
+	auth "github.com/jamesread/armature-httpauthshim"
+	"github.com/jamesread/armature-httpauthshim/authpublic"
+	"github.com/jamesread/armature-httpauthshim/sessions"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 
@@ -190,7 +190,7 @@ func setupAuth(cfg *config.Config) (*auth.AuthShimContext, error) {
 		return nil, err
 	}
 	authCtx.AddProvider(checkUserFromFaridoonSession)
-	logrus.Info("Authentication enabled (httpauthshim, DB-backed sessions)")
+	logrus.Info("Authentication enabled (armature-httpauthshim, DB-backed sessions)")
 	return authCtx, nil
 }
 

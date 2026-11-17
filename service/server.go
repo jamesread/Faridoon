@@ -7,8 +7,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
-	auth "github.com/jamesread/httpauthshim"
-	"github.com/jamesread/httpauthshim/authpublic"
+	auth "github.com/jamesread/armature-httpauthshim"
+	"github.com/jamesread/armature-httpauthshim/authpublic"
 
 	faridoonv1 "faridoon/service/gen/faridoon/v1"
 	"faridoon/service/gen/faridoon/v1/faridoonv1connect"
@@ -107,7 +107,9 @@ func (s *FaridoonServer) requireAuth(ctx context.Context) (*sessionUser, error) 
 	return u, nil
 }
 
-func (s *FaridoonServer) requirePriv(ctx context.Context, priv string) (*sessionUser, error) {
+// requirePriv gates an RPC on a named privilege. The priv argument stays
+// parameterized so new privilege checks can reuse this helper.
+func (s *FaridoonServer) requirePriv(ctx context.Context, priv string) (*sessionUser, error) { //nolint:unparam
 	u, err := s.requireAuth(ctx)
 	if err != nil {
 		return nil, err
