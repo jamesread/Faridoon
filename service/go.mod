@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	connectrpc.com/connect v1.21.1
 	github.com/alexedwards/argon2id v1.0.0
-	github.com/go-sql-driver/mysql v1.10.2
+	github.com/go-sql-driver/mysql v1.11.0
 	github.com/google/uuid v1.6.0
 	github.com/jamesread/armature-httpauthshim v0.3.0
 	github.com/knadh/koanf/parsers/yaml v1.1.1
@@ -37,6 +37,6 @@ require (
 	github.com/prometheus/common v0.74.0 // indirect
 	github.com/prometheus/procfs v0.23.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.6 // indirect
-	golang.org/x/net v0.62.0 // indirect
+	golang.org/x/net v0.63.0 // indirect
 	golang.org/x/sys v0.50.0 // indirect
 )
